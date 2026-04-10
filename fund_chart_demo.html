@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Fund Chart – Multi Panel</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: #f4f6f9; color: #333; }
+
+  header {
+    background: #fff;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid #e8eaed;
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-size: 16px; font-weight: 600; color: #1a1a2e; }
+  header p  { font-size: 11px; color: #888; margin-top: 2px; }
+
+  /* Period tabs */
+  .period-bar {
+    display: flex; gap: 6px;
+    padding: 10px 16px;
+    background: #fff;
+    border-bottom: 1px solid #e8eaed;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .period-bar button {
+    flex-shrink: 0;
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    background: #f5f5f5;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .period-bar button.active {
+    background: #4f6ef7; color: #fff; border-color: #4f6ef7;
+  }
+
+  /* Fund chips */
+  .fund-bar {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 10px 16px;
+    background: #fff;
+    border-bottom: 1px solid #e8eaed;
+  }
+  .fund-chip {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1.5px solid #ddd;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .2s;
+    user-select: none;
+  }
+  .fund-chip .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .fund-chip.active  { border-color: currentColor; background: #f0f3ff; }
+  .fund-chip.inactive { opacity: .45; }
+
+  /* Chart container */
+  #chart {
+    width: 100%;
+    background: #fff;
+    margin-top: 8px;
+  }
+
+  /* Footer note */
+  footer {
+    text-align: center;
+    font-size: 10px;
+    color: #bbb;
+    padding: 12px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📈 Fund Price Monitor</h1>
+  <p>Multi-panel view · independent Y-axis per fund</p>
+</header>
+
+<div class="period-bar" id="periodBar"></div>
+<div class="fund-bar"   id="fundBar"></div>
+<div id="chart"></div>
+<footer>Demo data · For illustration only</footer>
+
+<script>
+// ─── Config ───────────────────────────────────────────────────────────────────
+const COLORS = ['#4f6ef7','#f7964f','#4fc97a','#f74f6e','#b44ff7','#4fd4f7'];
+
+const schemaList = [
+  { id: 'A', name: 'Global Equity',   base: 120,  drift: 0.8  },
+  { id: 'B', name: 'Asia Bond',       base: 1200, drift: 5    },
+  { id: 'C', name: 'Tech Growth',     base: 35,   drift: 1.5  },
+  { id: 'D', name: 'HK Blue Chip',    base: 680,  drift: 3    },
+  { id: 'E', name: 'US Treasury',     base: 9800, drift: 12   },
+];
+
+const PERIODS = [
+  { label: '1W', count: 7,   unit: 'day'   },
+  { label: '1M', count: 30,  unit: 'day'   },
+  { label: '3M', count: 13,  unit: 'week'  },
+  { label: '6M', count: 26,  unit: 'week'  },
+  { label: '1Y', count: 12,  unit: 'month' },
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let currentPeriod = '1M';
+let selected = new Set(['A','B','C']);
+let chartInstance = null;
+// Deterministic seed per fund so data doesn't jump on period change
+const seeds = {};
+schemaList.forEach(f => { seeds[f.id] = f.base; });
+
+// ─── Label helpers ────────────────────────────────────────────────────────────
+function getLabels(period) {
+  const now = new Date();
+  const p = PERIODS.find(x => x.label === period);
+  const labels = [];
+  for (let i = 0; i < p.count; i++) {
+    const d = new Date(now);
+    if      (p.unit === 'day')   d.setDate(now.getDate() - (p.count - 1 - i));
+    else if (p.unit === 'week')  d.setDate(now.getDate() - (p.count - 1 - i) * 7);
+    else if (p.unit === 'month') d.setMonth(now.getMonth() - (p.count - 1 - i));
+    if (p.unit === 'month')
+      labels.push(d.toLocaleDateString('zh-HK',{month:'short',year:'2-digit'}));
+    else
+      labels.push(d.toLocaleDateString('zh-HK',{month:'numeric',day:'numeric'}));
+  }
+  return { count: p.count, labels };
+}
+
+// Simple seeded pseudo-random (LCG)
+function seededRng(seed) {
+  let s = seed * 9301 + 49297;
+  return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+}
+
+// ─── Draw ─────────────────────────────────────────────────────────────────────
+function drawChart() {
+  if (!chartInstance) {
+    chartInstance = echarts.init(document.getElementById('chart'));
+  }
+  const { count, labels } = getLabels(currentPeriod);
+  const selectedList = [...selected];
+  const panelCount = selectedList.length || 1;
+
+  // ── Layout math (percentages) ──────────────────────────────────────────────
+  const LEFT_PX   = 62;
+  const RIGHT_PX  = 18;
+  const TOP_PCT   = 2;
+  const BOT_PCT   = 6;       // space for last x-axis labels
+  const GAP_PCT   = 4;       // gap between panels
+  const usable    = 100 - TOP_PCT - BOT_PCT - GAP_PCT * (panelCount - 1);
+  const panelH    = usable / panelCount;
+
+  const grids   = [];
+  const xAxes   = [];
+  const yAxes   = [];
+  const series  = [];
+  const titles  = [];
+
+  selectedList.forEach((id, i) => {
+    const f     = schemaList.find(x => x.id === id);
+    const color = COLORS[schemaList.findIndex(x => x.id === id) % COLORS.length];
+    const isLast = i === panelCount - 1;
+    const rng   = seededRng(f.base + currentPeriod.charCodeAt(0));
+
+    // Generate slightly trending data
+    let val = f.base;
+    const amountData = Array.from({ length: count }, () => {
+      val += (rng() - 0.48) * f.drift * 2;
+      return +val.toFixed(2);
+    });
+
+    const gridTop = TOP_PCT + i * (panelH + GAP_PCT);
+
+    grids.push({
+      left: LEFT_PX, right: RIGHT_PX,
+      top: `${gridTop}%`, height: `${panelH}%`,
+    });
+
+    xAxes.push({
+      type: 'category', data: labels,
+      gridIndex: i,
+      axisLabel: {
+        show: isLast,
+        fontSize: 10,
+        color: '#888',
+        rotate: count > 20 ? 30 : 0,
+      },
+      axisLine:  { lineStyle: { color: '#e0e0e0' } },
+      axisTick:  { show: false },
+      splitLine: { show: false },
+    });
+
+    yAxes.push({
+      type: 'value',
+      gridIndex: i,
+      splitNumber: 3,
+      min: v => {
+        const r = v.max - v.min || 1;
+        const mag = Math.pow(10, Math.floor(Math.log10(r)));
+        return Math.floor((v.min - r * 0.25) / mag) * mag;
+      },
+      max: v => {
+        const r = v.max - v.min || 1;
+        const mag = Math.pow(10, Math.floor(Math.log10(r)));
+        return Math.ceil((v.max + r * 0.25) / mag) * mag;
+      },
+      axisLine:  { show: true, lineStyle: { color: '#e8e8e8' } },
+      axisTick:  { show: false },
+      splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
+      axisLabel: {
+        fontSize: 10, color: '#999',
+        formatter: v => {
+          if (Math.abs(v) >= 1e6) return (v/1e6).toFixed(1)+'M';
+          if (Math.abs(v) >= 1e3) return (v/1e3).toFixed(1)+'K';
+          return v;
+        }
+      },
+    });
+
+    // Fund name label inside the panel
+    titles.push({
+      text: `${f.name}  (HKD)`,
+      left: LEFT_PX + 6,
+      top: `${gridTop + 1}%`,
+      textStyle: { fontSize: 11, fontWeight: '600', color },
+    });
+
+    series.push({
+      name: f.name,
+      type: 'line',
+      data: amountData,
+      xAxisIndex: i,
+      yAxisIndex: i,
+      showSymbol: false,
+      smooth: true,
+      lineStyle: { color, width: 1.8 },
+      areaStyle: {
+        color: { type: 'linear', x:0,y:0,x2:0,y2:1,
+          colorStops: [
+            { offset: 0, color: color + '30' },
+            { offset: 1, color: color + '03' },
+          ]
+        }
+      },
+    });
+  });
+
+  // Resize chart height based on panel count
+  const minH = 200, perPanel = 160;
+  document.getElementById('chart').style.height =
+    Math.max(minH, panelCount * perPanel) + 'px';
+  chartInstance.resize();
+
+  chartInstance.setOption({
+    animation: true,
+    animationDuration: 400,
+    backgroundColor: '#fff',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'cross', crossStyle: { color: '#aaa' } },
+      formatter: params => params
+        .map(p => `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:4px"></span>${p.seriesName}: <b>${p.value}</b>`)
+        .join('<br/>'),
+      textStyle: { fontSize: 11 },
+    },
+    title:  titles,
+    grid:   grids,
+    xAxis:  xAxes,
+    yAxis:  yAxes,
+    series,
+  }, true);
+}
+
+// ─── Build UI ─────────────────────────────────────────────────────────────────
+function buildPeriodBar() {
+  const bar = document.getElementById('periodBar');
+  PERIODS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.textContent = p.label;
+    if (p.label === currentPeriod) btn.classList.add('active');
+    btn.onclick = () => {
+      currentPeriod = p.label;
+      bar.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      drawChart();
+    };
+    bar.appendChild(btn);
+  });
+}
+
+function buildFundBar() {
+  const bar = document.getElementById('fundBar');
+  schemaList.forEach((f, i) => {
+    const color = COLORS[i % COLORS.length];
+    const chip = document.createElement('div');
+    chip.className = 'fund-chip ' + (selected.has(f.id) ? 'active' : 'inactive');
+    chip.style.color = color;
+    chip.innerHTML = `<span class="dot" style="background:${color}"></span>${f.name}`;
+    chip.onclick = () => {
+      if (selected.has(f.id)) {
+        if (selected.size === 1) return;   // keep at least 1
+        selected.delete(f.id);
+        chip.classList.replace('active','inactive');
+      } else {
+        if (selected.size >= 4) return;    // max 4 panels
+        selected.add(f.id);
+        chip.classList.replace('inactive','active');
+      }
+      drawChart();
+    };
+    bar.appendChild(chip);
+  });
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+buildPeriodBar();
+buildFundBar();
+drawChart();
+
+window.addEventListener('resize', () => {
+  if (chartInstance) chartInstance.resize();
+});
+</script>
+</body>
+</html>
