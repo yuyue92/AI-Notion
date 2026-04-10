@@ -139,57 +139,48 @@ function drawChart() {
 
 **核心思路：每个子图固定像素高度，图表容器总高度 = 动态撑开，改用 px 替代 % 做 top 定位。(改完后无论选几条曲线，每个子图始终保持 PANEL_H_PX 高度，容器自动向下撑开，移动端可正常滚动查看。)**
 ```
--  // ── Layout math (percentages) ──────────────────────────────────────────────
--  const LEFT_PX   = 62;
--  const RIGHT_PX  = 18;
--  const TOP_PCT   = 2;
--  const BOT_PCT   = 6;       // space for last x-axis labels
--  const GAP_PCT   = 4;       // gap between panels
--  const usable    = 100 - TOP_PCT - BOT_PCT - GAP_PCT * (panelCount - 1);
--  const panelH    = usable / panelCount;
-+  // ── Layout math (fixed px per panel) ──────────────────────────────────────
-+  const LEFT_PX    = 62;
-+  const RIGHT_PX   = 18;
-+  const TOP_PX     = 10;      // 整体顶部留白 px
-+  const BOT_PX     = 30;      // 底部留给最后一个 x 轴标签 px
-+  const GAP_PX     = 28;      // 子图之间间距 px
-+  const PANEL_H_PX = 160;     // ← 每个子图固定高度 px，按需调整
+const leftOffset = 70;
+       const rightOffset = 40;
+-      const topPadding = 20;       // 整体顶部留白
+-      const bottomPadding = 10;    // 整体底部留白（最后一个xAxis）
+-      const gapBetween = 10;       // 子图之间的间距
+-      const totalHeight = 100;     // 百分比总高度
+-      const usable = totalHeight - topPadding - bottomPadding
+-                    - gapBetween * (panelCount - 1);
+-      const panelHeight = usable / panelCount;  // 每个子图高度百分比
++      const topPadding = 10;       // 整体顶部留白 px
++      const bottomPadding = 30;    // 底部留白 px（最后一个xAxis标签空间）
++      const gapBetween = 24;       // 子图之间间距 px
++      const panelHeight = 160;     // 每个子图固定高度 px ← 按需调整
 +
-+  // 动态撑开容器
-+  const totalChartH = TOP_PX + panelCount * PANEL_H_PX
-+                    + (panelCount - 1) * GAP_PX + BOT_PX;
-+  document.getElementById('chart').style.height = totalChartH + 'px';
-+  chartInstance.resize();   // 先 resize，再 setOption
++      // 容器总高度动态撑开
++      const totalHeight = topPadding + panelCount * panelHeight
++                        + (panelCount - 1) * gapBetween + bottomPadding;
++      const chartEl = document.getElementById('chart');
++      chartEl.style.height = totalHeight + 'px';
++      if (chartInstance) chartInstance.resize();
 
-   ...
+       ...
 
-   selectedList.forEach((id, i) => {
-     ...
--    const gridTop = TOP_PCT + i * (panelH + GAP_PCT);
-+    const gridTopPx = TOP_PX + i * (PANEL_H_PX + GAP_PX);
+-        const gridTop = topPadding + i * (panelHeight + gapBetween);
++        const gridTop = topPadding + i * (panelHeight + gapBetween);  // 此行不变，单位已变为 px
 
-     grids.push({
-       left: LEFT_PX, right: RIGHT_PX,
--      top: `${gridTop}%`, height: `${panelH}%`,
-+      top: gridTopPx,           // 直接传 number，ECharts 视为 px
-+      height: PANEL_H_PX,
-     });
+         grids.push({
+           left: leftOffset,
+           right: rightOffset,
+-          top: `${gridTop}%`,
+-          height: `${panelHeight}%`,
++          top: gridTop,            // number 类型，ECharts 视为 px
++          height: panelHeight,
+         });
 
-     ...
+         ...
 
-     // fund name label 同步改 px
-     titles.push({
-       text: `${f.name}  (HKD)`,
-       left: LEFT_PX + 6,
--      top: `${gridTop + 1}%`,
-+      top: gridTopPx + 4,       // px，title 在子图内稍微内缩
-       textStyle: { fontSize: 11, fontWeight: '600', color },
-     });
-   });
-
--  // 旧的容器高度设置（删除，已移到上方）
--  const minH = 200, perPanel = 160;
--  document.getElementById('chart').style.height =
--    Math.max(minH, panelCount * perPanel) + 'px';
--  chartInstance.resize();
+         titles.push({
+           text: f?.name ?? '',
+           left: leftOffset,
+-          top: `${gridTop}%`,
++          top: gridTop + 4,        // px，标题稍微内缩 4px
+           textStyle: { fontSize: 11, fontWeight: 'normal', color: '#555' },
+         });
 ```
