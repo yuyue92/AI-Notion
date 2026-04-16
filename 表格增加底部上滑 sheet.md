@@ -295,3 +295,159 @@ showSelectedFundPriceSheet();
    }
 *** End Patch
 ```
+
+---
+
+按你这个需求，我理解为：
+
+* **触发时机**：主页表格里，**勾选 checkbox 选中** 的瞬间触发
+* **动画效果**：从当前勾选位置飞一个小圆点，沿 **贝塞尔曲线** 飞到底部固定栏的 **Compare 按钮**
+* **取消勾选**：不触发动画
+* **只是交互增强**：不影响你现有底部弹框逻辑
+
+直接加下面这版 diff 即可：
+
+```diff id="8n2v4m"
+*** Begin Patch
+*** Update File: Fund Profile Comparator.html
+@@
+   .sheet-item-delete{
+     flex-shrink: 0;
+     width: 22px;
+     height: 22px;
+     border: none;
+@@
+     cursor: pointer;
+     padding: 0;
+   }
++
++  /* ===== add-to-compare 飞入动画 ===== */
++  .fly-dot{
++    position: fixed;
++    width: 14px;
++    height: 14px;
++    border-radius: 50%;
++    background: var(--primary);
++    box-shadow: 0 2px 8px rgba(255, 148, 0, .35);
++    z-index: 3000;
++    pointer-events: none;
++    left: 0;
++    top: 0;
++    transform: translate(-50%, -50%);
++  }
++
++  .compare-btn-bump{
++    animation: compareBtnBump .32s ease;
++  }
++
++  @keyframes compareBtnBump{
++    0%   { transform: scale(1); }
++    40%  { transform: scale(1.10); }
++    100% { transform: scale(1); }
++  }
+   </style>
+ </head>
+ <body>
+@@
+   function renderMainTable(){
+     const list=filtered();
+     console.log('====render-table===', list)
+     const start=(page-1)*pageSize;
+     tableBody.innerHTML=list.slice(start,start+pageSize).map(f=>`
+       <tr>
+-        <td class="chk_td"><input class="chknode" type="checkbox" ${selected.includes(f.id)?'checked':''} onchange="toggle(${f.id})"></td>
++        <td class="chk_td"><input class="chknode" type="checkbox" ${selected.includes(f.id)?'checked':''} onchange="toggle(${f.id}, this)"></td>
+         <td>${f.name}</td>
+         <td><span class="riskText risk-${f.risk}">Class ${f.risk}</span></td>
+         <td>${f.expense}%</td>
+       </tr>`).join('');
+     const pageCount = Math.ceil(list.length /pageSize)
+     pageInfo.textContent=`Page ${page} / ${pageCount}`;
+     selectedCount.textContent=`${selected.length} / 10 Selected`;
+   }
+ 
+-  function toggle(id){ if(selected.includes(id)) selected=selected.filter(i=>i!==id); else if(selected.length< 10) selected.push(id); renderMainTable(); }
++  function toggle(id, triggerEl){
++    const isSelecting = !selected.includes(id) && selected.length < 10;
++    const startRect = isSelecting && triggerEl ? triggerEl.getBoundingClientRect() : null;
++
++    if(selected.includes(id)) {
++      selected = selected.filter(i => i !== id);
++    } else if(selected.length < 10) {
++      selected.push(id);
++    }
++
++    renderMainTable();
++
++    if(startRect){
++      requestAnimationFrame(() => {
++        playAddToCompareAnimation(startRect);
++      });
++    }
++  }
++
++  function playAddToCompareAnimation(startRect){
++    const targetEl = document.querySelector('#fixedBar button');
++    if(!targetEl) return;
++
++    const targetRect = targetEl.getBoundingClientRect();
++
++    const startX = startRect.left + startRect.width / 2;
++    const startY = startRect.top + startRect.height / 2;
++    const endX = targetRect.left + targetRect.width / 2;
++    const endY = targetRect.top + targetRect.height / 2;
++
++    const controlX = startX + (endX - startX) * 0.5;
++    const controlY = Math.min(startY, endY) - 160; // 向上拱起，形成美团点餐那种抛物感
++
++    const dot = document.createElement('div');
++    dot.className = 'fly-dot';
++    document.body.appendChild(dot);
++
++    const duration = 700;
++    const startTime = performance.now();
++
++    function getQuadraticBezierPoint(t, p0, p1, p2){
++      const oneMinusT = 1 - t;
++      return oneMinusT * oneMinusT * p0
++        + 2 * oneMinusT * t * p1
++        + t * t * p2;
++    }
++
++    function frame(now){
++      const elapsed = now - startTime;
++      const t = Math.min(elapsed / duration, 1);
++
++      const x = getQuadraticBezierPoint(t, startX, controlX, endX);
++      const y = getQuadraticBezierPoint(t, startY, controlY, endY);
++
++      const scale = 1 - t * 0.25;
++      dot.style.left = `${x}px`;
++      dot.style.top = `${y}px`;
++      dot.style.transform = `translate(-50%, -50%) scale(${scale})`;
++      dot.style.opacity = `${1 - t * 0.15}`;
++
++      if(t < 1){
++        requestAnimationFrame(frame);
++      }else{
++        dot.remove();
++        bumpCompareButton();
++      }
++    }
++
++    requestAnimationFrame(frame);
++  }
++
++  function bumpCompareButton(){
++    const btn = document.querySelector('#fixedBar button');
++    if(!btn) return;
++    btn.classList.remove('compare-btn-bump');
++    void btn.offsetWidth;
++    btn.classList.add('compare-btn-bump');
++  }
++
+   function prevPage(){ if(page>1){page--; renderMainTable();}}
+   function nextPage(){ if(page*pageSize<filtered().length){page++; renderMainTable();}}
+*** End Patch
+```
+
