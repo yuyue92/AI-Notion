@@ -200,3 +200,98 @@
 showSelectedFundPriceSheet();
 ```
 
+新增删除项目:
+```
+*** Begin Patch
+*** Update File: Fund Profile Comparator.html
+@@
+   .sheet-item{
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     padding: 12px 0;
+     border-bottom: 1px solid #f3f3f3;
+     gap: 12px;
+   }
+ 
+   .sheet-item-name{
+     flex: 1;
+     font-size: 14px;
+     color: #333;
+     word-break: break-word;
+   }
+ 
+   .sheet-item-price{
+     flex-shrink: 0;
+     font-size: 14px;
+     font-weight: 600;
+     color: var(--primary);
+     text-align: right;
+   }
++
++  .sheet-item-delete{
++    flex-shrink: 0;
++    width: 22px;
++    height: 22px;
++    border: none;
++    border-radius: 50%;
++    background: #ff6b6b;
++    color: #fff;
++    font-size: 16px;
++    line-height: 22px;
++    text-align: center;
++    cursor: pointer;
++    padding: 0;
++  }
+   </style>
+ </head>
+ <body>
+@@
+   let selected=[];
+   let retRange=[2,12];
+   let riskRange=[1,6];
++  let currentFundPriceSheetList = [];
+@@
+-  function openFundPriceSheet(list = []){
++  function renderFundPriceSheetList(){
+     const listNode = document.getElementById('fundPriceSheetList');
+-    const sheetNode = document.getElementById('fundPriceSheet');
+-    const maskNode = document.getElementById('sheetMask');
+ 
+-    if(!list.length){
++    if(!currentFundPriceSheetList.length){
+       listNode.innerHTML = '<div style="padding:16px 0;color:#999;text-align:center;">No data</div>';
+     }else{
+-      listNode.innerHTML = list.map(item => `
++      listNode.innerHTML = currentFundPriceSheetList.map((item, index) => `
+         <div class="sheet-item">
+           <div class="sheet-item-name">${item.fundname}</div>
+           <div class="sheet-item-price">${item.price}</div>
++          <button class="sheet-item-delete" onclick="removeFundPriceItem(${index})">-</button>
+         </div>
+       `).join('');
+     }
++  }
++
++  function openFundPriceSheet(list = []){
++    const sheetNode = document.getElementById('fundPriceSheet');
++    const maskNode = document.getElementById('sheetMask');
++
++    currentFundPriceSheetList = [...list];
++    renderFundPriceSheetList();
+ 
+     maskNode.classList.add('show');
+     sheetNode.classList.add('show');
+   }
++
++  function removeFundPriceItem(index){
++    currentFundPriceSheetList.splice(index, 1);
++    renderFundPriceSheetList();
++  }
+ 
+   function closeFundPriceSheet(){
+     document.getElementById('sheetMask').classList.remove('show');
+     document.getElementById('fundPriceSheet').classList.remove('show');
+   }
+*** End Patch
+```
