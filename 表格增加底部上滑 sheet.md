@@ -451,3 +451,120 @@ showSelectedFundPriceSheet();
 *** End Patch
 ```
 
+---
+## claude补充的【贝塞尔曲线】功能
+
+理解你的需求：勾选基金时，触发一个**抛物线飞入动画**（类似美团加购物车），小球从勾选位置飞向右下角的"已选数量"badge。
+
+```diff
+ <style>
++  /* ===== 飞入购物车动画 ===== */
++  .fly-dot {
++    position: fixed;
++    width: 12px;
++    height: 12px;
++    border-radius: 50%;
++    background: var(--primary);
++    pointer-events: none;
++    z-index: 9999;
++    transform: translate(-50%, -50%);
++    transition: none;
++  }
++  @keyframes flyScale {
++    0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
++    80%  { opacity: 1; }
++    100% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
++  }
++
++  #selectedCount {
++    position: relative;
++    display: inline-block;
++    transition: transform 0.2s;
++  }
++  #selectedCount.bump {
++    animation: bump 0.3s ease;
++  }
++  @keyframes bump {
++    0%   { transform: scale(1); }
++    50%  { transform: scale(1.35); }
++    100% { transform: scale(1); }
++  }
+ </style>
+```
+
+```diff
++  // 贝塞尔飞行动画
++  function flyToCart(startEl) {
++    const startRect = startEl.getBoundingClientRect();
++    const endEl = document.getElementById('selectedCount');
++    const endRect = endEl.getBoundingClientRect();
++
++    const x0 = startRect.left + startRect.width / 2;
++    const y0 = startRect.top + startRect.height / 2;
++    const x1 = endRect.left + endRect.width / 2;
++    const y1 = endRect.top + endRect.height / 2;
++
++    // 控制点：水平偏右上方，形成抛物线弧度
++    const cx = x0 + (x1 - x0) * 0.8;
++    const cy = y0 - 80;
++
++    const dot = document.createElement('div');
++    dot.className = 'fly-dot';
++    document.body.appendChild(dot);
++
++    const startTime = performance.now();
++    const duration = 550;
++
++    function step(now) {
++      const t = Math.min((now - startTime) / duration, 1);
++      // 二次贝塞尔公式
++      const bx = (1-t)*(1-t)*x0 + 2*(1-t)*t*cx + t*t*x1;
++      const by = (1-t)*(1-t)*y0 + 2*(1-t)*t*cy + t*t*y1;
++      const scale = 1 - t * 0.7;
++      const opacity = t > 0.8 ? (1 - t) / 0.2 : 1;
++
++      dot.style.left = bx + 'px';
++      dot.style.top  = by + 'px';
++      dot.style.transform = `translate(-50%, -50%) scale(${scale})`;
++      dot.style.opacity = opacity;
++
++      if (t < 1) {
++        requestAnimationFrame(step);
++      } else {
++        dot.remove();
++        // 目标badge弹跳
++        endEl.classList.remove('bump');
++        void endEl.offsetWidth; // reflow 触发重新播放
++        endEl.classList.add('bump');
++      }
++    }
++    requestAnimationFrame(step);
++  }
+
+-  function toggle(id){ if(selected.includes(id)) selected=selected.filter(i=>i!==id); else if(selected.length< 10) selected.push(id); renderMainTable(); }
++  function toggle(id, checkboxEl){
++    if(selected.includes(id)){
++      selected = selected.filter(i => i !== id);
++    } else if(selected.length < 10){
++      selected.push(id);
++      if(checkboxEl) flyToCart(checkboxEl);
++    }
++    renderMainTable();
++  }
+```
+
+```diff
+-        <td class="chk_td"><input class="chknode" type="checkbox" ${selected.includes(f.id)?'checked':''} onchange="toggle(${f.id})"></td>
++        <td class="chk_td"><input class="chknode" type="checkbox" ${selected.includes(f.id)?'checked':''} onchange="toggle(${f.id}, this)"></td>
+```
+
+---
+
+**核心逻辑说明：**
+
+| 关键点 | 说明 |
+|---|---|
+| 贝塞尔曲线 | 二次贝塞尔，控制点在起点右上方，形成自然抛物线弧 |
+| `requestAnimationFrame` | 逐帧更新小球位置，流畅60fps |
+| 目标badge | 小球到达后触发 `bump` 缩放弹跳，给到达反馈 |
+| 仅勾选触发 | 取消勾选不触发飞行动画，符合美团逻辑 |
