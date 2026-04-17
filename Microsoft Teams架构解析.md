@@ -145,3 +145,10 @@ QoS 遥测、端侧性能、网络丢包、延迟、抖动、设备故障、会�
 
 **Teams 的核心不是“聊天 + 开会”，而是“以统一客户端承载多工作负载，用 Microsoft 365 作为企业级数据与治理底座，再用开放平台把协同能力扩出去”。**
 所以它真正厉害的地方，不是某个单点功能，而是：**实时协同、企业数据治理、语音互联、应用平台，这四件事被它放进了一套一致的架构里。** ([Microsoft Learn][1])
+
+---
+
+Microsoft Teams 架构图 + 模块关系图 + 自研仿 Teams 方案图
+<img width="1448" height="1086" alt="ChatGPT Image 2026年4月17日 10_57_50 (1)" src="https://github.com/user-attachments/assets/e6f5779f-9a1c-43c7-accf-df0225a43db5" />
+<img width="1448" height="1086" alt="ChatGPT Image 2026年4月17日 10_57_51 (3)" src="https://github.com/user-attachments/assets/a1920277-7bbb-4c0e-aa23-c215454543cd" />
+<img width="1448" height="1086" alt="ChatGPT Image 2026年4月17日 10_57_51 (2)" src="https://github.com/user-attachments/assets/b91c0f4d-2470-405a-8186-b95d120a93ed" />
