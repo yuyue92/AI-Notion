@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PollWave · 实时投票系统</title>
+
+<!-- Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- ECharts -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<!-- Config (填写您的 Supabase 凭据) -->
+<script src="config.js"></script>
+
+<style>
+/* ===========================
+   CSS 变量 & 主题
+   =========================== */
+:root {
+  --bg:        #0d0d12;
+  --surface:   #16161f;
+  --surface2:  #1e1e2a;
+  --border:    #2a2a3a;
+  --accent:    #6c63ff;
+  --accent2:   #ff6b9d;
+  --accent3:   #43e8d8;
+  --text:      #e8e8f0;
+  --muted:     #6e6e88;
+  --success:   #43e8a0;
+  --error:     #ff6b6b;
+  --warn:      #ffb84d;
+  --radius:    14px;
+  --r-sm:      8px;
+  --shadow:    0 8px 32px rgba(0,0,0,.45);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* animated bg mesh */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 10%, rgba(108,99,255,.12) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 30% at 80% 80%, rgba(255,107,157,.10) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 50% at 60% 40%, rgba(67,232,216,.07) 0%, transparent 60%);
+}
+
+/* ===========================
+   Layout
+   =========================== */
+#app { position: relative; z-index: 1; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 32px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(13,13,18,.85);
+  backdrop-filter: blur(14px);
+  position: sticky; top: 0; z-index: 100;
+}
+
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800; font-size: 1.5rem; letter-spacing: -.02em;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  text-decoration: none;
+}
+.logo span { -webkit-text-fill-color: var(--accent3); }
+
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+
+.page { display: none; max-width: 960px; margin: 0 auto; padding: 36px 24px 80px; }
+.page.active { display: block; animation: fadeUp .35s ease; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===========================
+   Buttons
+   =========================== */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 20px; border-radius: var(--r-sm);
+  font-family: 'DM Sans', sans-serif; font-size: .9rem; font-weight: 500;
+  cursor: pointer; border: none; transition: all .18s ease;
+  text-decoration: none; white-space: nowrap;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #9b6cff);
+  color: #fff; box-shadow: 0 4px 18px rgba(108,99,255,.35);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(108,99,255,.5); }
+.btn-ghost {
+  background: transparent; color: var(--muted); border: 1px solid var(--border);
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: rgba(108,99,255,.08); }
+.btn-danger { background: rgba(255,107,107,.15); color: var(--error); border: 1px solid rgba(255,107,107,.3); }
+.btn-danger:hover { background: rgba(255,107,107,.25); }
+.btn-sm { padding: 7px 14px; font-size: .82rem; }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+
+/* ===========================
+   Cards
+   =========================== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  transition: border-color .2s;
+}
+.card:hover { border-color: rgba(108,99,255,.4); }
+
+/* ===========================
+   Form elements
+   =========================== */
+.form-group { display: flex; flex-direction: column; gap: 7px; margin-bottom: 20px; }
+label { font-size: .85rem; color: var(--muted); font-weight: 500; letter-spacing: .03em; }
+input[type="text"], input[type="email"], input[type="password"], textarea, input[type="datetime-local"] {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 11px 14px;
+  color: var(--text); font-family: 'DM Sans', sans-serif; font-size: .9rem;
+  outline: none; transition: border-color .18s;
+  width: 100%;
+}
+input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,99,255,.15); }
+textarea { resize: vertical; min-height: 80px; }
+
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 13px 16px;
+  margin-bottom: 12px;
+}
+.toggle-label { font-size: .88rem; }
+.toggle-label small { display: block; color: var(--muted); font-size: .78rem; margin-top: 2px; }
+
+.toggle {
+  position: relative; width: 42px; height: 24px; flex-shrink: 0;
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; inset: 0;
+  background: var(--border); border-radius: 12px; cursor: pointer; transition: .3s;
+}
+.slider::before {
+  content: ''; position: absolute;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; top: 3px; left: 3px; transition: .3s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.4);
+}
+.toggle input:checked + .slider { background: var(--accent); }
+.toggle input:checked + .slider::before { transform: translateX(18px); }
+
+/* ===========================
+   Auth modal
+   =========================== */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.7); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; padding: 36px; width: 100%; max-width: 420px;
+  box-shadow: var(--shadow);
+  transform: translateY(20px); transition: transform .25s;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal h2 { font-family: 'Syne', sans-serif; font-size: 1.4rem; margin-bottom: 24px; }
+
+/* ===========================
+   Poll list
+   =========================== */
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 28px;
+}
+.section-title {
+  font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 700;
+}
+
+.poll-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+
+.poll-card {
+  cursor: pointer; position: relative; overflow: hidden;
+  transition: transform .2s, box-shadow .2s;
+}
+.poll-card:hover { transform: translateY(-3px); box-shadow: 0 12px 36px rgba(0,0,0,.5); }
+.poll-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  opacity: 0; transition: opacity .2s;
+}
+.poll-card:hover::before { opacity: 1; }
+
+.poll-card-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 600; margin-bottom: 10px; }
+.poll-card-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 20px; font-size: .72rem; font-weight: 500;
+}
+.badge-purple { background: rgba(108,99,255,.18); color: #a89cff; border: 1px solid rgba(108,99,255,.3); }
+.badge-pink   { background: rgba(255,107,157,.15); color: #ff9fc0; border: 1px solid rgba(255,107,157,.3); }
+.badge-teal   { background: rgba(67,232,216,.12); color: #7af5eb; border: 1px solid rgba(67,232,216,.25); }
+.badge-green  { background: rgba(67,232,160,.12); color: #7af5b8; border: 1px solid rgba(67,232,160,.25); }
+.badge-gray   { background: rgba(110,110,136,.15); color: var(--muted); border: 1px solid var(--border); }
+
+.poll-card-footer {
+  margin-top: 16px; padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  color: var(--muted); font-size: .8rem;
+}
+
+/* ===========================
+   Vote page
+   =========================== */
+.vote-header { margin-bottom: 32px; }
+.vote-header h1 { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 700; margin-bottom: 10px; }
+.vote-header p  { color: var(--muted); font-size: .95rem; }
+
+.options-list { display: flex; flex-direction: column; gap: 12px; margin: 24px 0; }
+.option-item {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--surface2); border: 2px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px; cursor: pointer;
+  transition: all .18s; user-select: none;
+}
+.option-item:hover { border-color: var(--accent); background: rgba(108,99,255,.08); }
+.option-item.selected {
+  border-color: var(--accent);
+  background: rgba(108,99,255,.14);
+  box-shadow: 0 0 0 4px rgba(108,99,255,.1);
+}
+.option-item.voted-choice { border-color: var(--success); background: rgba(67,232,160,.1); }
+
+.option-dot {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--border); background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .18s;
+}
+.option-item.selected .option-dot,
+.option-item.voted-choice .option-dot {
+  background: var(--accent); border-color: var(--accent);
+}
+.option-dot::after {
+  content: ''; width: 8px; height: 8px; border-radius: 50%;
+  background: #fff; opacity: 0; transition: opacity .18s;
+}
+.option-item.selected .option-dot::after,
+.option-item.voted-choice .option-dot::after { opacity: 1; }
+
+/* Checkbox style for multi-select */
+.option-item.multi .option-dot { border-radius: 5px; }
+.option-item.multi.selected .option-dot::after,
+.option-item.multi.voted-choice .option-dot::after {
+  width: 11px; height: 7px; border-radius: 0;
+  border: 2px solid #fff; border-top: none; border-right: none;
+  transform: rotate(-45deg) translate(-1px, 1px);
+  background: transparent;
+}
+
+.option-text { flex: 1; font-size: .95rem; }
+
+/* ===========================
+   Results chart
+   =========================== */
+.results-section { margin-top: 36px; }
+.results-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 20px; font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 600;
+}
+.live-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--success);
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(67,232,160,.6); }
+  50%       { box-shadow: 0 0 0 6px rgba(67,232,160,.0); }
+}
+
+#chart-container { width: 100%; height: 320px; }
+
+.results-bars { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; }
+.result-bar-item {}
+.result-bar-label {
+  display: flex; justify-content: space-between;
+  font-size: .85rem; margin-bottom: 6px; color: var(--text);
+}
+.result-bar-label span { color: var(--muted); }
+.result-bar-track {
+  height: 10px; background: var(--surface2); border-radius: 6px; overflow: hidden;
+}
+.result-bar-fill {
+  height: 100%; border-radius: 6px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width .6s cubic-bezier(.4,0,.2,1);
+}
+
+/* ===========================
+   Stats strip
+   =========================== */
+.stats-strip {
+  display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;
+}
+.stat-box {
+  flex: 1; min-width: 130px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 16px 18px;
+}
+.stat-box .stat-val {
+  font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.stat-box .stat-lbl { font-size: .78rem; color: var(--muted); margin-top: 3px; }
+
+/* ===========================
+   Admin create form
+   =========================== */
+.options-editor { display: flex; flex-direction: column; gap: 10px; }
+.option-row { display: flex; gap: 8px; align-items: center; }
+.option-row input { flex: 1; }
+.remove-opt { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 4px 8px; border-radius: 4px; transition: color .15s; }
+.remove-opt:hover { color: var(--error); }
+
+/* ===========================
+   Toast notifications
+   =========================== */
+#toast-stack {
+  position: fixed; bottom: 24px; right: 24px; z-index: 300;
+  display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+}
+.toast {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 13px 18px;
+  font-size: .875rem; box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 10px;
+  animation: slideIn .3s ease;
+  max-width: 320px;
+}
+@keyframes slideIn { from { opacity:0; transform: translateX(40px); } to { opacity:1; transform: translateX(0); } }
+.toast.success { border-color: rgba(67,232,160,.35); }
+.toast.error   { border-color: rgba(255,107,107,.35); }
+.toast-icon { font-size: 1rem; }
+
+/* ===========================
+   Empty state
+   =========================== */
+.empty-state {
+  text-align: center; padding: 60px 20px; color: var(--muted);
+}
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: .5; }
+.empty-state p { margin-bottom: 20px; }
+
+/* ===========================
+   Voted banner
+   =========================== */
+.voted-banner {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(67,232,160,.1); border: 1px solid rgba(67,232,160,.3);
+  border-radius: var(--r-sm); padding: 14px 18px; margin-top: 8px;
+  color: var(--success); font-size: .9rem;
+}
+
+/* ===========================
+   Admin list
+   =========================== */
+.admin-list { display: flex; flex-direction: column; gap: 14px; }
+.admin-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 16px 18px; gap: 12px;
+}
+.admin-row-info { flex: 1; min-width: 0; }
+.admin-row-info h3 { font-size: .95rem; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.admin-row-info small { color: var(--muted); font-size: .78rem; }
+.admin-row-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* ===========================
+   Loader
+   =========================== */
+.loader {
+  display: flex; align-items: center; justify-content: center;
+  padding: 48px; color: var(--muted); gap: 10px;
+}
+.spinner {
+  width: 20px; height: 20px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===========================
+   Tab nav
+   =========================== */
+.tab-nav {
+  display: flex; gap: 6px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 5px; margin-bottom: 28px;
+}
+.tab-btn {
+  flex: 1; padding: 9px 16px; border-radius: 6px;
+  font-size: .88rem; font-weight: 500; cursor: pointer;
+  border: none; background: none; color: var(--muted);
+  transition: all .18s;
+}
+.tab-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 6px rgba(0,0,0,.3); }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .topbar { padding: 14px 16px; }
+  .page { padding: 24px 16px 60px; }
+  .poll-grid { grid-template-columns: 1fr; }
+  .stats-strip { gap: 10px; }
+  .admin-row { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<!-- ========= Top bar ========= -->
+<div class="topbar">
+  <a class="logo" href="#">Poll<span>Wave</span></a>
+  <div class="topbar-right">
+    <div id="user-display" style="font-size:.85rem;color:var(--muted);"></div>
+    <button class="btn btn-ghost btn-sm" id="btn-auth">登录 / 注册</button>
+    <button class="btn btn-ghost btn-sm" id="btn-logout" style="display:none">退出</button>
+  </div>
+</div>
+
+<div id="app">
+  <!-- ======= Home / Poll List ======= -->
+  <div class="page active" id="page-home">
+    <div class="section-header">
+      <h1 class="section-title">🗳️ 所有投票</h1>
+      <button class="btn btn-primary" id="btn-create">＋ 创建投票</button>
+    </div>
+    <div id="poll-list" class="poll-grid">
+      <div class="loader"><div class="spinner"></div> 加载中…</div>
+    </div>
+  </div>
+
+  <!-- ======= Vote Page ======= -->
+  <div class="page" id="page-vote">
+    <button class="btn btn-ghost btn-sm" onclick="showPage('home')" style="margin-bottom:20px">← 返回</button>
+    <div id="vote-content"><div class="loader"><div class="spinner"></div></div></div>
+  </div>
+
+  <!-- ======= Admin Page ======= -->
+  <div class="page" id="page-admin">
+    <button class="btn btn-ghost btn-sm" onclick="showPage('home')" style="margin-bottom:20px">← 返回</button>
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('create')">✏️ 创建投票</button>
+      <button class="tab-btn" onclick="switchTab('manage')">📋 管理投票</button>
+    </div>
+    <div id="tab-create">
+      <div class="card">
+        <h2 style="font-family:'Syne',sans-serif;margin-bottom:24px;font-size:1.2rem">新建投票</h2>
+        <div class="form-group">
+          <label>投票标题 *</label>
+          <input type="text" id="poll-title" placeholder="输入您的问题…" maxlength="200" />
+        </div>
+        <div class="form-group">
+          <label>描述（可选）</label>
+          <textarea id="poll-desc" placeholder="补充说明…"></textarea>
+        </div>
+        <div class="form-group">
+          <label>截止时间（可选）</label>
+          <input type="datetime-local" id="poll-ends" />
+        </div>
+        <div class="form-group">
+          <label>选项（最多 6 个）*</label>
+          <div class="options-editor" id="options-editor"></div>
+          <button class="btn btn-ghost btn-sm" id="btn-add-opt" style="margin-top:8px;width:fit-content">＋ 添加选项</button>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">允许多选<small>用户可同时选择多个选项</small></div>
+          <label class="toggle"><input type="checkbox" id="toggle-multi" /><span class="slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">仅限登录用户投票<small>未登录访客无法参与</small></div>
+          <label class="toggle"><input type="checkbox" id="toggle-login" /><span class="slider"></span></label>
+        </div>
+        <button class="btn btn-primary" id="btn-submit-poll" style="width:100%;justify-content:center;margin-top:8px">🚀 发布投票</button>
+      </div>
+    </div>
+    <div id="tab-manage" style="display:none">
+      <div id="manage-list"><div class="loader"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======= Auth Modal ======= -->
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal">
+    <div class="tab-nav" style="margin-bottom:20px">
+      <button class="tab-btn active" onclick="switchAuthTab('login')">登录</button>
+      <button class="tab-btn" onclick="switchAuthTab('signup')">注册</button>
+    </div>
+    <div id="auth-login">
+      <div class="form-group"><label>邮箱</label><input type="email" id="login-email" placeholder="you@example.com" /></div>
+      <div class="form-group"><label>密码</label><input type="password" id="login-pass" placeholder="••••••••" /></div>
+      <button class="btn btn-primary" onclick="doLogin()" style="width:100%;justify-content:center">登录</button>
+    </div>
+    <div id="auth-signup" style="display:none">
+      <div class="form-group"><label>邮箱</label><input type="email" id="signup-email" placeholder="you@example.com" /></div>
+      <div class="form-group"><label>密码（至少 6 位）</label><input type="password" id="signup-pass" placeholder="••••••••" /></div>
+      <button class="btn btn-primary" onclick="doSignup()" style="width:100%;justify-content:center">注册</button>
+    </div>
+    <div style="margin-top:16px;text-align:center">
+      <button class="btn btn-ghost btn-sm" onclick="closeAuthModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======= Toast container ======= -->
+<div id="toast-stack"></div>
+
+<!-- ======= Confirm dialog ======= -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal" style="max-width:360px">
+    <h2 style="font-size:1.1rem;margin-bottom:10px">确认操作</h2>
+    <p id="confirm-msg" style="color:var(--muted);font-size:.9rem;margin-bottom:24px"></p>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost btn-sm" onclick="closeConfirm()">取消</button>
+      <button class="btn btn-danger btn-sm" id="confirm-ok">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   0. Init Supabase
+   ============================================================ */
+let sb;
+try {
+  // config.js should define SUPABASE_CONFIG
+  if (typeof SUPABASE_CONFIG === 'undefined') throw new Error('缺少配置');
+  sb = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+} catch(e) {
+  document.body.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;color:#e8e8f0;padding:24px;text-align:center">
+      <div style="font-size:2.5rem">⚙️</div>
+      <h2 style="font-family:'Syne',sans-serif">请先配置 Supabase</h2>
+      <p style="color:#6e6e88;max-width:400px">请打开 <code style="background:#1e1e2a;padding:3px 7px;border-radius:4px">config.js</code>，填入您的 Supabase URL 和 Anon Key，然后刷新页面。</p>
+      <p style="color:#6e6e88;font-size:.85rem">如还没有 Supabase 项目，请访问 <a href="https://supabase.com" target="_blank" style="color:#6c63ff">supabase.com</a> 免费创建。</p>
+    </div>`;
+  throw e;
+}
+
+/* ============================================================
+   1. State
+   ============================================================ */
+let currentUser = null;
+let currentPollId = null;
+let chartInstance = null;
+let realtimeChannel = null;
+const ANON_ID_KEY = 'pw_anon_id';
+
+function getAnonId() {
+  let id = localStorage.getItem(ANON_ID_KEY);
+  if (!id) { id = 'anon_' + Math.random().toString(36).slice(2) + Date.now(); localStorage.setItem(ANON_ID_KEY, id); }
+  return id;
+}
+const anonId = getAnonId();
+
+/* ============================================================
+   2. Auth
+   ============================================================ */
+sb.auth.onAuthStateChange(async (_event, session) => {
+  currentUser = session?.user ?? null;
+  updateAuthUI();
+});
+
+function updateAuthUI() {
+  const dis = document.getElementById('user-display');
+  const btnAuth   = document.getElementById('btn-auth');
+  const btnLogout = document.getElementById('btn-logout');
+  if (currentUser) {
+    dis.textContent = currentUser.email;
+    btnAuth.style.display = 'none';
+    btnLogout.style.display = '';
+  } else {
+    dis.textContent = '';
+    btnAuth.style.display = '';
+    btnLogout.style.display = 'none';
+  }
+}
+
+document.getElementById('btn-auth').onclick = () => openAuthModal();
+document.getElementById('btn-logout').onclick = async () => {
+  await sb.auth.signOut();
+  toast('已退出登录', 'success');
+};
+
+function openAuthModal()  { document.getElementById('auth-modal').classList.add('open'); }
+function closeAuthModal() { document.getElementById('auth-modal').classList.remove('open'); }
+
+function switchAuthTab(tab) {
+  document.getElementById('auth-login').style.display  = tab === 'login'  ? '' : 'none';
+  document.getElementById('auth-signup').style.display = tab === 'signup' ? '' : 'none';
+  document.querySelectorAll('#auth-modal .tab-btn').forEach((b, i) => b.classList.toggle('active', (i===0) === (tab==='login')));
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  if (!email || !pass) return toast('请填写邮箱和密码', 'error');
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) return toast(error.message, 'error');
+  closeAuthModal(); toast('登录成功！', 'success');
+}
+
+async function doSignup() {
+  const email = document.getElementById('signup-email').value.trim();
+  const pass  = document.getElementById('signup-pass').value;
+  if (!email || !pass) return toast('请填写邮箱和密码', 'error');
+  if (pass.length < 6) return toast('密码至少 6 位', 'error');
+  const { error } = await sb.auth.signUpWithPassword({ email, password: pass });
+  if (error) return toast(error.message, 'error');
+  closeAuthModal(); toast('注册成功！请检查邮箱验证', 'success');
+}
+
+// allow signUpWithPassword fallback for older SDK
+if (!sb.auth.signUpWithPassword) {
+  sb.auth.signUpWithPassword = (p) => sb.auth.signUp(p);
+}
+
+/* ============================================================
+   3. Page navigation
+   ============================================================ */
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'home') loadPollList();
+  if (name === 'admin') { switchTab('create'); loadManageList(); }
+}
+
+document.getElementById('btn-create').onclick = () => {
+  if (!currentUser) { toast('请先登录才能创建投票', 'error'); openAuthModal(); return; }
+  showPage('admin');
+};
+
+/* ============================================================
+   4. Poll List
+   ============================================================ */
+async function loadPollList() {
+  const el = document.getElementById('poll-list');
+  el.innerHTML = '<div class="loader"><div class="spinner"></div> 加载中…</div>';
+  const { data: polls, error } = await sb
+    .from('polls').select('*, options(id, vote_count)')
+    .eq('is_active', true).order('created_at', { ascending: false });
+  if (error) { el.innerHTML = `<div class="loader" style="color:var(--error)">加载失败: ${error.message}</div>`; return; }
+  if (!polls.length) {
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🗳️</div><p>还没有投票，来创建第一个吧！</p></div>`;
+    return;
+  }
+  el.innerHTML = polls.map(p => {
+    const total = (p.options || []).reduce((s, o) => s + (o.vote_count || 0), 0);
+    const since = relativeTime(p.created_at);
+    const isExpired = p.ends_at && new Date(p.ends_at) < new Date();
+    return `
+    <div class="card poll-card" onclick="openPoll('${p.id}')">
+      <div class="poll-card-title">${escHtml(p.title)}</div>
+      <div class="poll-card-meta">
+        ${p.allow_multiple ? '<span class="badge badge-purple">多选</span>' : '<span class="badge badge-teal">单选</span>'}
+        ${p.require_login  ? '<span class="badge badge-pink">需登录</span>' : '<span class="badge badge-green">公开</span>'}
+        ${isExpired ? '<span class="badge badge-gray">已结束</span>' : '<span class="badge badge-green">进行中</span>'}
+      </div>
+      <div class="poll-card-footer">
+        <span>📊 ${total} 票</span>
+        <span>${since}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openPoll(pollId) {
+  currentPollId = pollId;
+  showPage('vote');
+  unsubscribeRealtime();
+  await renderVotePage(pollId);
+  subscribeRealtime(pollId);
+}
+
+/* ============================================================
+   5. Vote Page Render
+   ============================================================ */
+async function renderVotePage(pollId) {
+  const el = document.getElementById('vote-content');
+  el.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  const { data: rpc } = await sb.rpc('get_poll_detail', { p_poll_id: pollId });
+  if (!rpc || !rpc.success) { el.innerHTML = `<p style="color:var(--error)">投票不存在</p>`; return; }
+
+  const poll    = rpc.poll;
+  const options = rpc.options;
+  const total   = rpc.participant_count;
+
+  // Check if voted
+  const { data: voteCheck } = await sb.rpc('check_voted', {
+    p_poll_id: pollId,
+    p_user_id: currentUser?.id ?? null,
+    p_anonymous_id: currentUser ? null : anonId
+  });
+  const hasVoted    = voteCheck?.has_voted ?? false;
+  const votedOptIds = voteCheck?.voted_options ?? [];
+
+  const isExpired = poll.ends_at && new Date(poll.ends_at) < new Date();
+  const totalVotes = options.reduce((s, o) => s + o.vote_count, 0);
+
+  el.innerHTML = `
+    <div class="vote-header">
+      <h1>${escHtml(poll.title)}</h1>
+      ${poll.description ? `<p>${escHtml(poll.description)}</p>` : ''}
+      <div class="poll-card-meta" style="margin-top:10px">
+        ${poll.allow_multiple ? '<span class="badge badge-purple">可多选</span>' : '<span class="badge badge-teal">单选</span>'}
+        ${poll.require_login  ? '<span class="badge badge-pink">需登录</span>' : '<span class="badge badge-green">公开投票</span>'}
+        ${isExpired ? '<span class="badge badge-gray">已结束</span>' : '<span class="badge badge-green">进行中</span>'}
+        ${poll.ends_at ? `<span class="badge badge-gray">截止 ${new Date(poll.ends_at).toLocaleString('zh-CN')}</span>` : ''}
+      </div>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-box"><div class="stat-val" id="stat-participants">${total}</div><div class="stat-lbl">参与人数</div></div>
+      <div class="stat-box"><div class="stat-val" id="stat-votes">${totalVotes}</div><div class="stat-lbl">总票数</div></div>
+      <div class="stat-box"><div class="stat-val">${options.length}</div><div class="stat-lbl">选项数</div></div>
+    </div>
+
+    ${hasVoted || isExpired ? '' : `
+    <div class="options-list" id="options-list">
+      ${options.map((o, i) => `
+        <div class="option-item ${poll.allow_multiple ? 'multi' : ''}" data-id="${o.id}" onclick="toggleOption(this,'${poll.allow_multiple}')">
+          <div class="option-dot ${poll.allow_multiple ? '' : ''}"></div>
+          <div class="option-text">${escHtml(o.option_text)}</div>
+        </div>`).join('')}
+    </div>
+    <button class="btn btn-primary" id="btn-vote" onclick="submitVote('${pollId}','${poll.allow_multiple}','${poll.require_login}')" style="width:100%;justify-content:center;padding:14px">
+      ✅ 提交投票
+    </button>
+    `}
+
+    ${hasVoted ? `<div class="voted-banner">✅ 您已参与此投票</div>` : ''}
+
+    <div class="results-section">
+      <div class="results-header">
+        <div class="live-dot"></div>
+        实时结果
+        ${isExpired ? '<span class="badge badge-gray" style="margin-left:auto">最终结果</span>' : ''}
+      </div>
+      <div id="chart-container"></div>
+      <div class="results-bars" id="results-bars">
+        ${renderBars(options, totalVotes, votedOptIds)}
+      </div>
+    </div>
+  `;
+
+  initChart(options);
+}
+
+function renderBars(options, total, votedIds) {
+  return options.map(o => {
+    const pct = total > 0 ? Math.round(o.vote_count / total * 100) : 0;
+    const isVoted = votedIds.includes(o.id);
+    return `
+    <div class="result-bar-item">
+      <div class="result-bar-label">
+        <div>${escHtml(o.option_text)} ${isVoted ? '✅' : ''}</div>
+        <span>${o.vote_count} 票 (${pct}%)</span>
+      </div>
+      <div class="result-bar-track">
+        <div class="result-bar-fill" style="width:${pct}%;${isVoted ? 'background:linear-gradient(90deg,var(--success),#43e8a0)' : ''}"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function initChart(options) {
+  const el = document.getElementById('chart-container');
+  if (!el) return;
+  if (chartInstance) chartInstance.dispose();
+  chartInstance = echarts.init(el, null, { renderer: 'canvas' });
+  updateChart(options);
+}
+
+function updateChart(options) {
+  if (!chartInstance) return;
+  const total = options.reduce((s, o) => s + o.vote_count, 0);
+  chartInstance.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'item', formatter: '{b}: {c} 票 ({d}%)' },
+    legend: {
+      orient: 'vertical', right: '5%', top: 'center',
+      textStyle: { color: '#e8e8f0', fontSize: 12 },
+    },
+    series: [{
+      type: 'pie', radius: ['45%', '75%'],
+      center: ['38%', '50%'],
+      avoidLabelOverlap: false,
+      label: { show: false },
+      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#e8e8f0' } },
+      data: options.map((o, i) => ({
+        name: o.option_text,
+        value: o.vote_count,
+        itemStyle: { color: PALETTE[i % PALETTE.length] }
+      }))
+    }]
+  });
+}
+
+const PALETTE = ['#6c63ff','#ff6b9d','#43e8d8','#ffb84d','#43e8a0','#ff8c4b'];
+
+/* ============================================================
+   6. Vote Interaction
+   ============================================================ */
+function toggleOption(el, allowMulti) {
+  const isMulti = allowMulti === 'true' || allowMulti === true;
+  if (!isMulti) {
+    document.querySelectorAll('#options-list .option-item').forEach(i => i.classList.remove('selected'));
+  }
+  el.classList.toggle('selected');
+}
+
+async function submitVote(pollId, allowMulti, requireLogin) {
+  const reqLogin = requireLogin === 'true' || requireLogin === true;
+  if (reqLogin && !currentUser) {
+    toast('此投票需要登录后才能参与', 'error'); openAuthModal(); return;
+  }
+  const selected = [...document.querySelectorAll('#options-list .option-item.selected')].map(e => e.dataset.id);
+  if (!selected.length) { toast('请至少选择一个选项', 'error'); return; }
+
+  const btn = document.getElementById('btn-vote');
+  btn.disabled = true; btn.textContent = '提交中…';
+
+  const { data, error } = await sb.rpc('submit_vote', {
+    p_poll_id:      pollId,
+    p_option_ids:   selected,
+    p_user_id:      currentUser?.id ?? null,
+    p_anonymous_id: currentUser ? null : anonId
+  });
+
+  if (error || !data?.success) {
+    toast(data?.error || error?.message || '提交失败', 'error');
+    btn.disabled = false; btn.textContent = '✅ 提交投票';
+    return;
+  }
+  toast('投票成功！🎉', 'success');
+  await renderVotePage(pollId);
+  subscribeRealtime(pollId);
+}
+
+/* ============================================================
+   7. Realtime subscription
+   ============================================================ */
+function subscribeRealtime(pollId) {
+  unsubscribeRealtime();
+  realtimeChannel = sb
+    .channel('poll-' + pollId)
+    .on('postgres_changes', {
+      event: 'UPDATE', schema: 'public', table: 'options',
+      filter: `poll_id=eq.${pollId}`
+    }, handleRealtimeUpdate)
+    .on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'poll_participants',
+      filter: `poll_id=eq.${pollId}`
+    }, async () => {
+      // Refresh participant count
+      const { count } = await sb.from('poll_participants').select('*', { count: 'exact', head: true }).eq('poll_id', pollId);
+      const el = document.getElementById('stat-participants');
+      if (el) el.textContent = count ?? '—';
+    })
+    .subscribe();
+}
+
+async function handleRealtimeUpdate() {
+  // Re-fetch fresh options
+  const { data } = await sb.from('options').select('*').eq('poll_id', currentPollId).order('sort_order');
+  if (!data) return;
+  const total = data.reduce((s, o) => s + o.vote_count, 0);
+
+  // Check voted options for highlighting
+  const { data: vc } = await sb.rpc('check_voted', {
+    p_poll_id: currentPollId,
+    p_user_id: currentUser?.id ?? null,
+    p_anonymous_id: currentUser ? null : anonId
+  });
+  const votedIds = vc?.voted_options ?? [];
+
+  const barsEl = document.getElementById('results-bars');
+  if (barsEl) barsEl.innerHTML = renderBars(data, total, votedIds);
+
+  const statVotes = document.getElementById('stat-votes');
+  if (statVotes) statVotes.textContent = total;
+
+  updateChart(data);
+}
+
+function unsubscribeRealtime() {
+  if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+}
+
+/* ============================================================
+   8. Admin — Create Poll
+   ============================================================ */
+let optCount = 0;
+function addOptionRow(value = '') {
+  if (optCount >= 6) { toast('最多 6 个选项', 'error'); return; }
+  optCount++;
+  const id = 'opt-' + optCount;
+  const row = document.createElement('div');
+  row.className = 'option-row'; row.dataset.optId = id;
+  row.innerHTML = `
+    <input type="text" id="${id}" placeholder="选项 ${optCount}" value="${escHtml(value)}" maxlength="200" />
+    <button class="remove-opt" onclick="removeOptionRow('${id}')">✕</button>`;
+  document.getElementById('options-editor').appendChild(row);
+  document.getElementById(id).focus();
+}
+function removeOptionRow(id) {
+  const row = document.querySelector(`[data-opt-id="${id}"]`);
+  if (row) { row.remove(); optCount--; }
+}
+
+document.getElementById('btn-add-opt').onclick = () => addOptionRow();
+
+// Initialize with 2 options
+addOptionRow(); addOptionRow();
+
+document.getElementById('btn-submit-poll').onclick = async () => {
+  if (!currentUser) { toast('请先登录', 'error'); openAuthModal(); return; }
+  const title   = document.getElementById('poll-title').value.trim();
+  const desc    = document.getElementById('poll-desc').value.trim();
+  const endsRaw = document.getElementById('poll-ends').value;
+  const allowM  = document.getElementById('toggle-multi').checked;
+  const reqL    = document.getElementById('toggle-login').checked;
+
+  const optEls = document.querySelectorAll('#options-editor input[type=text]');
+  const opts   = [...optEls].map(e => e.value.trim()).filter(Boolean);
+
+  if (!title) { toast('请填写投票标题', 'error'); return; }
+  if (opts.length < 2) { toast('至少需要 2 个选项', 'error'); return; }
+
+  const btn = document.getElementById('btn-submit-poll');
+  btn.disabled = true; btn.textContent = '发布中…';
+
+  const pollPayload = {
+    title, description: desc || null,
+    allow_multiple: allowM, require_login: reqL,
+    is_active: true, created_by: currentUser.id,
+    ends_at: endsRaw ? new Date(endsRaw).toISOString() : null
+  };
+
+  const { data: poll, error: pe } = await sb.from('polls').insert(pollPayload).select().single();
+  if (pe) { toast('创建失败: ' + pe.message, 'error'); btn.disabled = false; btn.textContent = '🚀 发布投票'; return; }
+
+  const optionsPayload = opts.map((t, i) => ({ poll_id: poll.id, option_text: t, sort_order: i }));
+  const { error: oe } = await sb.from('options').insert(optionsPayload);
+  if (oe) { toast('选项创建失败: ' + oe.message, 'error'); btn.disabled = false; btn.textContent = '🚀 发布投票'; return; }
+
+  toast('投票已发布！🎉', 'success');
+  // Reset form
+  document.getElementById('poll-title').value = '';
+  document.getElementById('poll-desc').value = '';
+  document.getElementById('poll-ends').value = '';
+  document.getElementById('options-editor').innerHTML = '';
+  document.getElementById('toggle-multi').checked = false;
+  document.getElementById('toggle-login').checked = false;
+  optCount = 0;
+  addOptionRow(); addOptionRow();
+  btn.disabled = false; btn.textContent = '🚀 发布投票';
+
+  setTimeout(() => openPoll(poll.id), 600);
+};
+
+/* ============================================================
+   9. Admin — Manage Polls
+   ============================================================ */
+async function loadManageList() {
+  if (!currentUser) { document.getElementById('manage-list').innerHTML = '<p style="color:var(--muted)">请先登录</p>'; return; }
+  const el = document.getElementById('manage-list');
+  el.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  const { data: polls, error } = await sb
+    .from('polls').select('*, options(id,vote_count)')
+    .eq('created_by', currentUser.id).order('created_at', { ascending: false });
+
+  if (error || !polls) { el.innerHTML = `<p style="color:var(--error)">${error?.message}</p>`; return; }
+  if (!polls.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>您还没有创建过投票</p></div>'; return; }
+
+  const rows = await Promise.all(polls.map(async p => {
+    const { count } = await sb.from('poll_participants').select('*', { count: 'exact', head: true }).eq('poll_id', p.id);
+    const totalVotes = (p.options || []).reduce((s, o) => s + o.vote_count, 0);
+    const isExpired  = p.ends_at && new Date(p.ends_at) < new Date();
+    return `
+    <div class="admin-row" id="admin-row-${p.id}">
+      <div class="admin-row-info">
+        <h3>${escHtml(p.title)}</h3>
+        <small>
+          👥 ${count ?? 0} 人参与 · 📊 ${totalVotes} 票 ·
+          ${p.is_active && !isExpired ? '✅ 进行中' : '🔒 已结束'} ·
+          ${new Date(p.created_at).toLocaleDateString('zh-CN')}
+        </small>
+      </div>
+      <div class="admin-row-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openPoll('${p.id}')">查看</button>
+        <button class="btn btn-ghost btn-sm" onclick="togglePollActive('${p.id}',${p.is_active})">${p.is_active ? '暂停' : '恢复'}</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDeletePoll('${p.id}','${escHtml(p.title)}')">删除</button>
+      </div>
+    </div>`;
+  }));
+  el.innerHTML = `<div class="admin-list">${rows.join('')}</div>`;
+}
+
+async function togglePollActive(pollId, current) {
+  const { error } = await sb.from('polls').update({ is_active: !current }).eq('id', pollId);
+  if (error) return toast('操作失败', 'error');
+  toast(current ? '投票已暂停' : '投票已恢复', 'success');
+  loadManageList();
+}
+
+function confirmDeletePoll(pollId, title) {
+  document.getElementById('confirm-msg').textContent = `确定要删除投票「${title}」吗？此操作不可撤销，所有投票数据将一并删除。`;
+  document.getElementById('confirm-ok').onclick = () => deletePoll(pollId);
+  document.getElementById('confirm-modal').classList.add('open');
+}
+function closeConfirm() { document.getElementById('confirm-modal').classList.remove('open'); }
+
+async function deletePoll(pollId) {
+  closeConfirm();
+  const { error } = await sb.from('polls').delete().eq('id', pollId);
+  if (error) return toast('删除失败: ' + error.message, 'error');
+  toast('投票已删除', 'success');
+  loadManageList();
+}
+
+/* ============================================================
+   10. Tab switching
+   ============================================================ */
+function switchTab(tab) {
+  document.getElementById('tab-create').style.display  = tab === 'create'  ? '' : 'none';
+  document.getElementById('tab-manage').style.display  = tab === 'manage' ? '' : 'none';
+  document.querySelectorAll('#page-admin .tab-nav .tab-btn').forEach((b, i) =>
+    b.classList.toggle('active', (i === 0) === (tab === 'create'))
+  );
+  if (tab === 'manage') loadManageList();
+}
+
+/* ============================================================
+   11. Utilities
+   ============================================================ */
+function toast(msg, type = 'info') {
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toast-stack').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function relativeTime(ts) {
+  const diff = Date.now() - new Date(ts).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return '刚刚';
+  if (m < 60) return m + ' 分钟前';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + ' 小时前';
+  return Math.floor(h / 24) + ' 天前';
+}
+
+/* ============================================================
+   12. Bootstrap
+   ============================================================ */
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  currentUser = session?.user ?? null;
+  updateAuthUI();
+  loadPollList();
+})();
+
+// Close modals on overlay click
+document.getElementById('auth-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeAuthModal(); });
+document.getElementById('confirm-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeConfirm(); });
+
+// Resize chart with window
+window.addEventListener('resize', () => chartInstance?.resize());
+</script>
+</body>
+</html>
