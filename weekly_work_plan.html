@@ -451,7 +451,11 @@
 
     const PRIORITIES = ["Low", "Medium", "High", "Urgent"];
     const STATUSES = ["Not Started", "In Progress", "Done", "Blocked", "On Hold"];
-    const WEEKDAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    // const WEEKDAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    const WEEKDAY_LABELS = [
+      "Monday（周一）", "Tuesday（周二）", "Wednesday（周三）",
+      "Thursday（周四）", "Friday（周五）"
+    ];
 
     const els = {
       memberSelect: document.getElementById("memberSelect"),
@@ -479,6 +483,7 @@
     };
     let autoSaveTimer = null;
     let toastTimer = null;
+    let isDirty = false;   // 表格有未保存的改动
 
     function init() {
       assertRequiredElements();
@@ -503,12 +508,16 @@
 
     function bindEvents() {
       els.memberSelect.addEventListener("change", () => {
-        flushAutoSave();
+        if (isDirty && !confirm("当前周有未保存的修改，切换后将丢失。是否继续？")) {
+          els.memberSelect.value = state.member;  // 还原选择
+          return;
+        }
+        isDirty = false;
         state.member = els.memberSelect.value;
         renderPlanTable();
       });
 
-      els.yearInput.addEventListener("change", () => {
+      els.yearInput.addEventListener("blur", () => {
         flushAutoSave();
         const nextYear = normalizeYear(els.yearInput.value);
         state.year = nextYear;
@@ -520,14 +529,17 @@
       });
 
       els.weekSelect.addEventListener("change", () => {
-        flushAutoSave();
+        if (isDirty && !confirm("当前周有未保存的修改，切换后将丢失。是否继续？")) {
+          els.weekSelect.value = state.weekKey;   // 还原选择
+          return;
+        }
+        isDirty = false;
         state.weekKey = els.weekSelect.value;
         renderPlanTable();
       });
 
       els.planTableBody.addEventListener("input", (event) => {
         if (isEditableField(event.target)) {
-          normalizeProgressInput(event.target);
           scheduleAutoSave();
         }
       });
@@ -538,6 +550,12 @@
           saveCurrentPlan(true);
         }
       });
+
+      els.planTableBody.addEventListener("blur", (event) => {
+        if (isEditableField(event.target)) {
+          normalizeProgressInput(event.target);
+        }
+      }, true);   // 用捕获阶段，因为 blur 不冒泡
 
       els.saveBtn.addEventListener("click", () => saveCurrentPlan(false));
       els.exportBtn.addEventListener("click", exportJson);
@@ -609,7 +627,7 @@
           </td>
           <td class="progress">
             <div class="progress-wrap">
-              <input class="form-control" type="number" min="0" max="100" step="1" data-row="${index}" data-field="progress" value="${escapeHtml(String(row.progress || ""))}" placeholder="0" />
+              <input class="form-control" type="number" min="0" max="100" step="1" data-row="${index}" data-field="progress" value="${escapeHtml(String(row.progress ?? ""))}" placeholder="0" />
               <span class="percent-sign">%</span>
             </div>
           </td>
@@ -654,12 +672,14 @@
       dataStore.plans[state.member][state.year][state.weekKey] = collectRowsFromTable();
       dataStore.updatedAt = new Date().toISOString();
       persistData();
+      isDirty = false;
       updateSaveStatus(isAuto ? "已自动保存" : "已保存");
       if (!isAuto) showToast("当前周计划已保存");
     }
 
     function scheduleAutoSave() {
       if (autoSaveTimer) clearTimeout(autoSaveTimer);
+      isDirty = true;
       autoSaveTimer = setTimeout(() => saveCurrentPlan(true), AUTO_SAVE_DELAY);
     }
 
@@ -708,7 +728,8 @@
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      // URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       showToast("JSON 已导出");
     }
 
@@ -732,6 +753,17 @@
           dataStore = normalized;
           dataStore.updatedAt = new Date().toISOString();
           persistData();
+          // 重置 state，再重建周列表和视图，避免跨年数据对不上
+          state.year = new Date().getFullYear();
+          state.member = (dataStore.members && dataStore.members[0]) || MEMBERS[0];
+          els.memberSelect.innerHTML = (dataStore.members || MEMBERS).map((name) =>
+            `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`
+          ).join("");
+          els.memberSelect.value = state.member;
+          els.yearInput.value = state.year;
+          renderWeekOptions(state.year);
+          state.weekKey = getDefaultWeekKey(state.year);
+          syncControlsFromState();
           renderPlanTable();
           updateSaveStatus("已导入");
           showToast("JSON 导入成功");
@@ -745,29 +777,30 @@
     }
 
     function buildWorkWeeks(year) {
-      const firstDay = new Date(year, 0, 1);
-      const lastDay = new Date(year, 11, 31);
-      let start = startOfWeekMonday(firstDay);
+      // 包含当年至少一天的所有工作周（周一~周五）
+      const yearStart = new Date(year, 0, 1);
+      const yearEnd   = new Date(year, 11, 31);
+      let start = startOfWeekMonday(yearStart);
       const weeks = [];
       let weekNo = 1;
 
-      while (start <= lastDay) {
-        const days = Array.from({ length: 5 }, (_, index) => addDays(start, index)).map(formatDate);
-        const key = `${year}-W${pad2(weekNo)}`;
-        weeks.push({
-          key,
-          weekNo,
-          startDate: days[0],
-          endDate: days[4],
-          days,
-          label: `week${pad2(weekNo)} ${days[0]} ~ ${days[4]}`
-        });
+      while (true) {
+        const friday = addDays(start, 4);
+        // 本周（周一~周五）与当年有重叠才收录
+        if (start > yearEnd) break;
+        if (friday >= yearStart) {
+          const days = Array.from({ length: 5 }, (_, i) => addDays(start, i)).map(formatDate);
+          const key = `${year}-W${pad2(weekNo)}`;
+          weeks.push({ key, weekNo, startDate: days[0], endDate: days[4], days,
+            label: `week${pad2(weekNo)} ${days[0]} ~ ${days[4]}` });
+          weekNo += 1;
+        }
         start = addDays(start, 7);
-        weekNo += 1;
       }
 
       return weeks;
     }
+
 
     function getDefaultWeekKey(year) {
       const today = new Date();
@@ -813,7 +846,15 @@
     }
 
     function persistData() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataStore));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataStore));
+      } catch (e) {
+        if (e.name === "QuotaExceededError" || e.code === 22) {
+          alert("⚠️ 浏览器本地存储已满，本次数据未能保存！\n请立即点击「导出 JSON」备份，然后清理旧数据。");
+        } else {
+          console.error("persistData 失败：", e);
+        }
+      }
     }
 
     function normalizeImportedStore(imported) {
