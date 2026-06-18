@@ -212,17 +212,20 @@
       border-collapse: separate;
       border-spacing: 0;
       min-width: 1240px;
+      border-top: 1px solid #edf2f7;
+      border-left: 1px solid #edf2f7;
     }
 
     .board-table thead th {
       position: sticky;
       top: 0;
       z-index: 2;
-      border-bottom: 1px solid var(--border);
+      border-right: 1px solid #edf2f7;
+      border-bottom: 1px solid #edf2f7;
       color: #334155;
       padding: 12px 10px;
-      text-align: left;
-      font-size: 13px;
+      text-align: center;
+      font-size: 16px;
       white-space: nowrap;
       background: #f8fafc;
     }
@@ -233,6 +236,25 @@
       padding: 10px;
       vertical-align: top;
       background: #fff;
+    }
+
+    .board-table thead th:first-child {
+      background: #fbfdff;
+    }
+
+    .board-table thead th:nth-child(2),
+    .board-table tbody td:nth-child(2) {
+      background: linear-gradient(180deg, #fff8e1 0%, #fffdf3 100%);
+    }
+
+    .board-table thead th:nth-child(3),
+    .board-table tbody td:nth-child(3) {
+      background: linear-gradient(180deg, #e7f1ff 0%, #f6fbff 100%);
+    }
+
+    .board-table thead th:nth-child(4),
+    .board-table tbody td:nth-child(4) {
+      background: linear-gradient(180deg, #e9f7ef 0%, #f7fffa 100%);
     }
 
     .member-cell {
@@ -256,7 +278,17 @@
 
     .status-col { width: 31%; min-width: 330px; }
     .status-head { display: flex; align-items: center; gap: 8px; }
-    .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px; font-weight: 800; font-size: 12px; }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 16px;
+      min-width: 92px;
+    }
     .status-pill.pending { background: var(--pending); color: #856404; }
     .status-pill.processing { background: var(--processing); color: #084298; }
     .status-pill.done { background: var(--done); color: #0f5132; }
@@ -266,8 +298,20 @@
       border: 1px dashed transparent;
       border-radius: 12px;
       padding: 4px;
-      background: #fff;
+      background: rgba(255, 255, 255, 0.58);
       transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .board-table tbody td:nth-child(2) .drop-zone {
+      background: rgba(255, 255, 255, 0.48);
+    }
+
+    .board-table tbody td:nth-child(3) .drop-zone {
+      background: rgba(255, 255, 255, 0.50);
+    }
+
+    .board-table tbody td:nth-child(4) .drop-zone {
+      background: rgba(255, 255, 255, 0.52);
     }
 
     .drop-zone.drag-over {
@@ -352,24 +396,77 @@
       position: absolute;
       left: 12px;
       top: calc(100% + 8px);
-      width: 380px;
-      max-width: min(420px, 80vw);
+      width: 420px;
+      max-width: min(460px, 84vw);
       z-index: 30;
-      background: #0f172a;
-      color: #fff;
-      border-radius: 12px;
-      padding: 12px;
-      box-shadow: 0 14px 34px rgba(15, 23, 42, 0.25);
+      background: #ffffff;
+      color: #212529;
+      border: 1px solid #dee2e6;
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18);
       cursor: default;
+    }
+
+    .item-preview::before {
+      content: "";
+      position: absolute;
+      left: 22px;
+      top: -7px;
+      width: 12px;
+      height: 12px;
+      background: #ffffff;
+      border-left: 1px solid #dee2e6;
+      border-top: 1px solid #dee2e6;
+      transform: rotate(45deg);
     }
 
     .item-card:hover .item-preview { display: block; }
 
-    .preview-title { font-weight: 800; margin-bottom: 8px; }
-    .preview-task { border-top: 1px solid rgba(255,255,255,0.16); padding-top: 8px; margin-top: 8px; font-size: 12px; }
-    .preview-slots { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-    .preview-slot { border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 2px 5px; color: #cbd5e1; }
-    .preview-slot.checked { background: #22c55e; color: #fff; border-color: #22c55e; }
+    .preview-title {
+      font-weight: 850;
+      margin-bottom: 10px;
+      color: #102a43;
+      font-size: 15px;
+    }
+
+    .preview-task {
+      border-top: 1px solid #edf2f7;
+      padding-top: 10px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #334155;
+      line-height: 1.45;
+    }
+
+    .preview-task b {
+      display: block;
+      color: #102a43;
+      font-size: 13px;
+      margin-bottom: 3px;
+    }
+
+    .preview-slots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .preview-slot {
+      border: 1px solid #dee2e6;
+      border-radius: 999px;
+      padding: 3px 7px;
+      color: #475569;
+      background: #f8fafc;
+      font-weight: 650;
+    }
+
+    .preview-slot.checked {
+      background: #e9f7ef;
+      color: #0f5132;
+      border-color: #75b798;
+    }
 
     .footer-note { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 8px 2px 0; }
 
@@ -667,7 +764,7 @@
       <div class="modal-footer">
         <button id="deleteItemBtn" class="btn btn-outline-danger" type="button">删除 Work Item</button>
         <div class="actions">
-          <span id="modalSaveHint" class="save-status">修改会自动保存</span>
+          <span id="modalSaveHint" class="save-status">编辑内容不会自动保存</span>
           <button id="saveItemBtn" class="btn btn-primary" type="button">保存并关闭</button>
         </div>
       </div>
@@ -679,7 +776,7 @@
   <script>
     // ====== 可按实际团队和成员修改这里 ======
     const TEAMS = {
-      Customer_Service_Process: ["Huang, Peng", "Huang, Zhi", "Yu, Yue", "Shu, Bo", "Jim", "Li, BaoJie"],
+      Customer_Service_Process: ["Huang, Peng", "Huang, Zhi", "Yu, Yue", "Shu, Bo", "Yu, Jim", "Li, BaoJie"],
       team2: ["xxx1", "xxww", "xxx3", "xxx4", "xxx5"],
       team3: ["alpha", "beta", "gamma", "delta"]
     };
@@ -702,6 +799,13 @@
       "Mon AM", "Tue AM", "Wed AM", "Thu AM", "Fri AM",
       "Mon PM", "Tue PM", "Wed PM", "Thu PM", "Fri PM"
     ];
+
+    const PREVIEW_SLOT_KEYS = [
+      "mon_am", "mon_pm", "tue_am", "tue_pm", "wed_am", "wed_pm", "thu_am", "thu_pm", "fri_am", "fri_pm"
+    ];
+    const PREVIEW_SLOT_LABELS = [
+      "Mon AM", "Mon PM", "Tue AM", "Tue PM", "Wed AM", "Wed PM", "Thu AM", "Thu PM", "Fri AM", "Fri PM"
+     ];
 
     const els = {
       teamSelect: document.getElementById("teamSelect"),
@@ -744,6 +848,7 @@
     let toastTimer = null;
     let dragPayload = null;
     let modalContext = null;
+    let modalDraft = null;
 
     function init() {
       assertRequiredElements();
@@ -809,14 +914,13 @@
       els.closeModalBtn.addEventListener("click", closeModal);
       els.saveItemBtn.addEventListener("click", () => {
         syncModalToItem();
+        if (!commitModalDraft()) return;
         saveNow(false);
+        renderBoard();
         closeModal();
       });
       els.deleteItemBtn.addEventListener("click", deleteCurrentItem);
       els.addTaskBtn.addEventListener("click", addTaskToCurrentItem);
-      els.itemModalBackdrop.addEventListener("click", (event) => {
-        if (event.target === els.itemModalBackdrop) closeModal();
-      });
 
       [els.modalWorkItem, els.modalExpectDate, els.modalCreateDate, els.modalPriority].forEach((el) => {
         el.addEventListener("input", handleModalInput);
@@ -826,10 +930,6 @@
       els.tasksTableBody.addEventListener("input", handleTaskTableInput);
       els.tasksTableBody.addEventListener("change", handleTaskTableInput);
       els.tasksTableBody.addEventListener("click", handleTaskTableClick);
-
-      window.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && els.itemModalBackdrop.classList.contains("show")) closeModal();
-      });
 
       window.addEventListener("beforeunload", () => flushAutoSave());
     }
@@ -934,7 +1034,7 @@
               <b>${escapeHtml(task.taskName || "Untitled Task")}</b>
               <div>${escapeHtml(truncate(task.description || task.remarkBlocker || "", 80))}</div>
               <div class="preview-slots">
-                ${SLOT_KEYS.map((key, index) => `<span class="preview-slot ${task.slots?.[key] ? "checked" : ""}">${escapeHtml(SLOT_LABELS[index])}</span>`).join("")}
+                ${PREVIEW_SLOT_KEYS.map((key, index) => `<span class="preview-slot ${task.slots?.[key] ? "checked" : ""}">${escapeHtml(PREVIEW_SLOT_LABELS[index])}</span>`).join("")}
               </div>
             </div>
           `).join("")}
@@ -963,52 +1063,69 @@
 
     function addItem(member, status) {
       ensureCurrentWeekData();
-      const item = createEmptyItem();
-      getItems(member, status).push(item);
-      saveNow(true);
-      renderBoard();
-      openItemModal(member, status, item.id);
+      modalContext = { member, status, itemId: null, isNew: true };
+      modalDraft = createEmptyItem();
+      openDraftModal(member, status);
     }
 
     function openItemModal(member, status, itemId) {
       const item = findItem(member, status, itemId);
       if (!item) return;
-      modalContext = { member, status, itemId };
+      modalContext = { member, status, itemId, isNew: false };
+      modalDraft = cloneItem(item);
+      openDraftModal(member, status);
+    }
+    function openDraftModal(member, status) {
+      if (!modalDraft) return;
       els.itemModalTitle.textContent = "Edit Work Item";
       els.itemModalSubtitle.textContent = `${state.team} / ${member} / ${STATUS_LABELS[status]}`;
-      els.modalWorkItem.value = item.workItem || "";
-      els.modalExpectDate.value = item.expectCompleteDate || "";
-      els.modalCreateDate.value = item.createDate || "";
-      els.modalPriority.value = item.priority || "Low";
-      renderTasksTable(item);
+      els.modalWorkItem.value = modalDraft.workItem || "";
+      els.modalExpectDate.value = modalDraft.expectCompleteDate || "";
+      els.modalCreateDate.value = modalDraft.createDate || "";
+      els.modalPriority.value = modalDraft.priority || "Low";
+      renderTasksTable(modalDraft);
+      updateModalSaveHint(false);
       els.itemModalBackdrop.classList.add("show");
       setTimeout(() => els.modalWorkItem.focus(), 0);
     }
 
     function closeModal() {
-      if (modalContext) {
-        syncModalToItem();
-        saveNow(true);
-        renderBoard();
-      }
       els.itemModalBackdrop.classList.remove("show");
       modalContext = null;
+      modalDraft = null;
     }
 
     function syncModalToItem() {
-      const item = getCurrentModalItem();
-      if (!item) return;
-      item.workItem = els.modalWorkItem.value.trim();
-      item.expectCompleteDate = els.modalExpectDate.value;
-      item.createDate = els.modalCreateDate.value;
-      item.priority = els.modalPriority.value || "Low";
+      if (!modalDraft) return;
+      modalDraft.workItem = els.modalWorkItem.value.trim();
+      modalDraft.expectCompleteDate = els.modalExpectDate.value;
+      modalDraft.createDate = els.modalCreateDate.value;
+      modalDraft.priority = els.modalPriority.value || "Low";
+    }
+
+    function commitModalDraft() {
+      if (!modalContext || !modalDraft) return false;
+      const cleanedItem = cleanItemForSave(modalDraft);
+      if (!isMeaningfulItem(cleanedItem)) {
+        alert("请至少填写 Work Item 或一条有效 Task 内容。空白 Work Item / 空白 Task 不会保存。");
+        return false;
+      }
+
+      const items = getItems(modalContext.member, modalContext.status);
+      if (modalContext.isNew) {
+        items.push(cleanedItem);
+        return true;
+      }
+
+      const index = items.findIndex((item) => item.id === modalContext.itemId);
+      if (index < 0) return false;
+      items[index] = cleanedItem;
+      return true;
     }
 
     function handleModalInput() {
       syncModalToItem();
-      updateModalSaveHint();
-      scheduleAutoSave();
-      renderBoard();
+      updateModalSaveHint(true);
     }
 
     function renderTasksTable(item) {
@@ -1095,9 +1212,7 @@
       } else {
         task[field] = target.value;
       }
-      updateModalSaveHint();
-      scheduleAutoSave();
-      renderBoard();
+      updateModalSaveHint(true);
     }
 
     function handleTaskTableClick(event) {
@@ -1111,19 +1226,21 @@
       if (!confirm(`确定删除「${taskName}」吗？`)) return;
       item.tasks.splice(index, 1);
       renderTasksTable(item);
-      saveNow(true);
-      renderBoard();
-      updateModalSaveHint();
+      updateModalSaveHint(true);
     }
 
     function deleteCurrentItem() {
       if (!modalContext) return;
       const item = getCurrentModalItem();
       const title = item?.workItem || "当前 Work Item";
+      if (modalContext.isNew) {
+        closeModal();
+        showToast("未保存的 Work Item 已关闭");
+        return;
+      }
       if (!confirm(`确定删除「${title}」吗？`)) return;
       removeItem(modalContext.member, modalContext.status, modalContext.itemId);
-      modalContext = null;
-      els.itemModalBackdrop.classList.remove("show");
+      closeModal();
       saveNow(false);
       renderBoard();
       showToast("Work Item 已删除");
@@ -1189,12 +1306,56 @@
     }
 
     function getCurrentModalItem() {
-      if (!modalContext) return null;
-      return findItem(modalContext.member, modalContext.status, modalContext.itemId);
+      if (!modalContext || !modalDraft) return null;
+      return modalDraft;
     }
 
     function findItem(member, status, itemId) {
       return getItems(member, status).find((item) => item.id === itemId) || null;
+    }
+
+    function cloneItem(item) {
+      return normalizeItem(JSON.parse(JSON.stringify(item || {})));
+    }
+
+    function cleanItemForSave(item) {
+      const cleaned = normalizeItem(item || {});
+      cleaned.tasks = cleaned.tasks.filter(isMeaningfulTask);
+      return cleaned;
+    }
+
+    function isMeaningfulItem(item) {
+      const workItem = String(item.workItem || "").trim();
+      return Boolean(
+        workItem ||
+        item.expectCompleteDate ||
+        (Array.isArray(item.tasks) && item.tasks.some(isMeaningfulTask))
+      );
+    }
+
+    function isMeaningfulTask(task) {
+      if (!task) return false;
+      return Boolean(
+        String(task.taskName || "").trim() ||
+        String(task.description || "").trim() ||
+        String(task.remarkBlocker || "").trim() ||
+        SLOT_KEYS.some((key) => Boolean(task.slots && task.slots[key]))
+      );
+    }
+
+    function pruneEmptyTasksInStore() {
+      Object.values(dataStore.plans || {}).forEach((teamPlans) => {
+        Object.values(teamPlans || {}).forEach((yearPlans) => {
+          Object.values(yearPlans || {}).forEach((weekData) => {
+            Object.values(weekData.members || {}).forEach((memberBoard) => {
+              STATUS_KEYS.forEach((status) => {
+                if (!Array.isArray(memberBoard[status])) return;
+                memberBoard[status] = memberBoard[status].map(cleanItemForSave);
+              });
+            });
+          });
+        });
+      });
     }
 
     function removeItem(member, status, itemId) {
@@ -1538,8 +1699,8 @@
       els.saveStatus.textContent = `${prefix} ${time}`;
     }
 
-    function updateModalSaveHint() {
-      els.modalSaveHint.textContent = "修改会自动保存";
+    function updateModalSaveHint(hasUnsavedChange = false) {
+      els.modalSaveHint.textContent = hasUnsavedChange ? "有未保存修改，点击「保存并关闭」后生效": "编辑内容不会自动保存";
     }
 
     function showToast(message) {
