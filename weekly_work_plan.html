@@ -1,0 +1,930 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Weekly Work Plan</title>
+  <style>
+    :root {
+      --primary: #0d6efd;
+      --primary-dark: #0a58ca;
+      --danger: #dc3545;
+      --border: #dee2e6;
+      --text: #212529;
+      --muted: #6c757d;
+      --bg: #f3f6fb;
+      --card: #ffffff;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #eef5ff 0%, #f7f9fc 45%, #ffffff 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 24px 18px 42px;
+    }
+
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      margin-bottom: 14px;
+    }
+
+    .app-title {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+      color: #102a43;
+    }
+
+    .app-subtitle {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #b6d4fe;
+      background: #e7f1ff;
+      color: #084298;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(222, 226, 230, 0.85);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .card-body { padding: 14px; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .member-field { flex: 0 0 132px; }
+    .year-field { flex: 0 0 100px; }
+    .week-field { flex: 0 0 280px; }
+    .date-field { flex: 0 0 136px; }
+    .actions-field { flex: 1 1 260px; min-width: 240px; }
+
+    label {
+      font-weight: 650;
+      font-size: 12px;
+      color: #334155;
+    }
+
+    .form-control,
+    .form-select {
+      width: 100%;
+      border: 1px solid #ced4da;
+      border-radius: 10px;
+      padding: 7px 10px;
+      min-height: 34px;
+      font-size: 13px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    textarea.form-control {
+      resize: vertical;
+      min-height: 46px;
+      line-height: 1.35;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+      border-color: #86b7fe;
+      box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+    }
+
+    .readonly-input {
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 650;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 7px 10px;
+      min-height: 34px;
+      font-weight: 650;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .btn:active { transform: translateY(1px); }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .btn-primary:hover { background: var(--primary-dark); }
+
+    .btn-outline-primary {
+      background: #fff;
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .btn-outline-primary:hover { background: #e7f1ff; }
+
+    .btn-outline-secondary {
+      background: #fff;
+      color: #495057;
+      border-color: #adb5bd;
+    }
+
+    .btn-outline-secondary:hover { background: #f8f9fa; }
+
+    .btn-outline-danger {
+      background: #fff;
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+
+    .btn-outline-danger:hover { background: #fff5f5; }
+
+    .save-status {
+      color: var(--muted);
+      font-size: 12px;
+      min-width: 112px;
+      white-space: nowrap;
+    }
+
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: #fbfdff;
+    }
+
+    .table-title {
+      margin: 0;
+      font-size: 17px;
+      color: #102a43;
+    }
+
+    .table-hint {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 1180px;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      color: #334155;
+      padding: 11px 10px;
+      text-align: left;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    tbody td {
+      border-bottom: 1px solid #edf2f7;
+      padding: 9px 8px;
+      vertical-align: top;
+      background: #fff;
+    }
+
+    tbody tr:hover td { background: #fbfdff; }
+
+    .date-cell {
+      min-width: 122px;
+      font-weight: 750;
+      color: #0f172a;
+      white-space: nowrap;
+      padding-top: 15px;
+    }
+
+    .date-cell small {
+      display: block;
+      color: var(--muted);
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .task-id { min-width: 220px; }
+    .work-item { min-width: 180px; }
+    .description { min-width: 260px; }
+    .priority { min-width: 120px; }
+    .status { min-width: 145px; }
+    .progress { min-width: 112px; }
+    .remark { min-width: 220px; }
+
+    .progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .progress-wrap input { flex: 1; }
+
+    .percent-sign {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      margin: 8px 2px 0;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: #0f172a;
+      color: #fff;
+      border-radius: 12px;
+      padding: 11px 14px;
+      box-shadow: var(--shadow);
+      font-size: 14px;
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 960px) {
+      .app-header { flex-direction: column; }
+      .member-field,
+      .year-field,
+      .week-field,
+      .date-field,
+      .actions-field {
+        flex: 1 1 220px;
+        min-width: 0;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .container { padding: 20px 12px 34px; }
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .app-title { font-size: 24px; }
+      .actions { align-items: stretch; }
+      .actions .btn { flex: 1 1 auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="app-header">
+      <div>
+        <h1 class="app-title">Weekly Work Plan</h1>
+        <p class="app-subtitle">原生 HTML 单文件版：成员切换、周切换、五天五行、自动保存、JSON 导入导出。</p>
+      </div>
+      <span class="badge">💾 Auto Save: localStorage + JSON Backup</span>
+    </header>
+
+    <section class="card">
+      <div class="card-body">
+        <div class="toolbar">
+          <div class="form-group member-field">
+            <label for="memberSelect">Team Member</label>
+            <select id="memberSelect" class="form-select"></select>
+          </div>
+
+          <div class="form-group year-field">
+            <label for="yearInput">Year</label>
+            <input id="yearInput" class="form-control" type="number" min="2000" max="2100" step="1" />
+          </div>
+
+          <div class="form-group week-field">
+            <label for="weekSelect">Week</label>
+            <select id="weekSelect" class="form-select"></select>
+          </div>
+
+          <div class="form-group date-field">
+            <label for="startDateDisplay">StartDate</label>
+            <input id="startDateDisplay" class="form-control readonly-input" type="text" readonly />
+          </div>
+
+          <div class="form-group date-field">
+            <label for="endDateDisplay">EndDate</label>
+            <input id="endDateDisplay" class="form-control readonly-input" type="text" readonly />
+          </div>
+
+          <div class="form-group actions-field">
+            <label>&nbsp;</label>
+            <div class="actions">
+              <button id="saveBtn" class="btn btn-primary" type="button">保存</button>
+              <button id="exportBtn" class="btn btn-outline-primary" type="button">导出 JSON</button>
+              <button id="importBtn" class="btn btn-outline-secondary" type="button">导入 JSON</button>
+              <button id="clearWeekBtn" class="btn btn-outline-danger" type="button">清空当前周</button>
+              <span id="saveStatus" class="save-status">尚未保存</span>
+              <input id="importFile" type="file" accept="application/json,.json" hidden />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card table-card">
+      <div class="table-header">
+        <div>
+          <h2 class="table-title" id="tableTitle">Work Plan Table</h2>
+          <div class="table-hint">一天一行；如果一天有多个任务，可在 Work Item / Description / Remark 中用英文分号 <b>;</b> 分隔。</div>
+        </div>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+          <table aria-label="Weekly work plan table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Task ID</th>
+                <th>Work Item</th>
+                <th>Description</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Progress (%)</th>
+                <th>Remark</th>
+              </tr>
+            </thead>
+            <tbody id="planTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <p class="footer-note">
+      数据默认自动保存到当前浏览器的 localStorage；更换电脑/浏览器前请先点击“导出 JSON”备份。成员列表在文件顶部 JavaScript 的 MEMBERS 数组里修改即可。
+    </p>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ====== 可按实际小组成员修改这里 ======
+    const MEMBERS = ["Huang, Peng", "Huang, Zhi", "Yu, Yue", "Shu, Bo", "Jim", "Li, BaoJie"];
+
+    const STORAGE_KEY = "weekly_work_plan_data_v1";
+    const AUTO_SAVE_DELAY = 350;
+
+    const FIELDS = [
+      "taskId",
+      "workItem",
+      "description",
+      "priority",
+      "status",
+      "progress",
+      "remark"
+    ];
+
+    const PRIORITIES = ["Low", "Medium", "High", "Urgent"];
+    const STATUSES = ["Not Started", "In Progress", "Done", "Blocked", "On Hold"];
+    const WEEKDAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+    const els = {
+      memberSelect: document.getElementById("memberSelect"),
+      yearInput: document.getElementById("yearInput"),
+      weekSelect: document.getElementById("weekSelect"),
+      startDateDisplay: document.getElementById("startDateDisplay"),
+      endDateDisplay: document.getElementById("endDateDisplay"),
+      saveBtn: document.getElementById("saveBtn"),
+      exportBtn: document.getElementById("exportBtn"),
+      importBtn: document.getElementById("importBtn"),
+      importFile: document.getElementById("importFile"),
+      clearWeekBtn: document.getElementById("clearWeekBtn"),
+      saveStatus: document.getElementById("saveStatus"),
+      tableTitle: document.getElementById("tableTitle"),
+      planTableBody: document.getElementById("planTableBody"),
+      toast: document.getElementById("toast")
+    };
+
+    let dataStore = loadData();
+    let weekOptions = [];
+    let state = {
+      member: MEMBERS[0],
+      year: new Date().getFullYear(),
+      weekKey: ""
+    };
+    let autoSaveTimer = null;
+    let toastTimer = null;
+
+    function init() {
+      assertRequiredElements();
+      renderMembers();
+      els.yearInput.value = state.year;
+      renderWeekOptions(state.year);
+      state.weekKey = getDefaultWeekKey(state.year);
+      syncControlsFromState();
+      renderPlanTable();
+      bindEvents();
+      updateSaveStatus("已载入");
+    }
+
+    function assertRequiredElements() {
+      const missing = Object.entries(els)
+        .filter(([, el]) => !el)
+        .map(([key]) => key);
+      if (missing.length) {
+        throw new Error("Weekly Work Plan 初始化失败，缺少页面元素：" + missing.join(", "));
+      }
+    }
+
+    function bindEvents() {
+      els.memberSelect.addEventListener("change", () => {
+        flushAutoSave();
+        state.member = els.memberSelect.value;
+        renderPlanTable();
+      });
+
+      els.yearInput.addEventListener("change", () => {
+        flushAutoSave();
+        const nextYear = normalizeYear(els.yearInput.value);
+        state.year = nextYear;
+        els.yearInput.value = nextYear;
+        renderWeekOptions(nextYear);
+        state.weekKey = getDefaultWeekKey(nextYear);
+        syncControlsFromState();
+        renderPlanTable();
+      });
+
+      els.weekSelect.addEventListener("change", () => {
+        flushAutoSave();
+        state.weekKey = els.weekSelect.value;
+        renderPlanTable();
+      });
+
+      els.planTableBody.addEventListener("input", (event) => {
+        if (isEditableField(event.target)) {
+          normalizeProgressInput(event.target);
+          scheduleAutoSave();
+        }
+      });
+
+      els.planTableBody.addEventListener("change", (event) => {
+        if (isEditableField(event.target)) {
+          normalizeProgressInput(event.target);
+          saveCurrentPlan(true);
+        }
+      });
+
+      els.saveBtn.addEventListener("click", () => saveCurrentPlan(false));
+      els.exportBtn.addEventListener("click", exportJson);
+      els.importBtn.addEventListener("click", () => els.importFile.click());
+      els.importFile.addEventListener("change", importJson);
+      els.clearWeekBtn.addEventListener("click", clearCurrentWeek);
+
+      window.addEventListener("beforeunload", flushAutoSave);
+    }
+
+    function renderMembers() {
+      els.memberSelect.innerHTML = MEMBERS.map((name) => {
+        return `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+      }).join("");
+    }
+
+    function renderWeekOptions(year) {
+      weekOptions = buildWorkWeeks(year);
+      els.weekSelect.innerHTML = weekOptions.map((week) => {
+        return `<option value="${week.key}">${escapeHtml(week.label)}</option>`;
+      }).join("");
+    }
+
+    function syncControlsFromState() {
+      els.memberSelect.value = state.member;
+      els.yearInput.value = state.year;
+      els.weekSelect.value = state.weekKey;
+    }
+
+    function renderPlanTable() {
+      const selectedWeek = getSelectedWeek();
+      if (!selectedWeek) return;
+
+      syncControlsFromState();
+      els.startDateDisplay.value = selectedWeek.startDate;
+      els.endDateDisplay.value = selectedWeek.endDate;
+      els.tableTitle.textContent = `${state.member} - ${selectedWeek.label}`;
+
+      const savedRows = getSavedRows();
+      const rows = selectedWeek.days.map((date, index) => {
+        const saved = savedRows[index] || {};
+        return normalizeRow({ ...saved, date });
+      });
+
+      els.planTableBody.innerHTML = rows.map((row, index) => renderRow(row, index)).join("");
+    }
+
+    function renderRow(row, index) {
+      return `
+        <tr>
+          <td class="date-cell">
+            ${escapeHtml(row.date)}
+            <small>${WEEKDAY_LABELS[index]}</small>
+          </td>
+          <td class="task-id">
+            <input class="form-control" data-row="${index}" data-field="taskId" value="${escapeHtml(row.taskId)}" placeholder="T001" />
+          </td>
+          <td class="work-item">
+            <textarea class="form-control" data-row="${index}" data-field="workItem" placeholder="多个任务用 ; 分隔">${escapeHtml(row.workItem)}</textarea>
+          </td>
+          <td class="description">
+            <textarea class="form-control" data-row="${index}" data-field="description" placeholder="工作描述 / 关键产出">${escapeHtml(row.description)}</textarea>
+          </td>
+          <td class="priority">
+            ${renderSelect("priority", index, row.priority, PRIORITIES)}
+          </td>
+          <td class="status">
+            ${renderSelect("status", index, row.status, STATUSES)}
+          </td>
+          <td class="progress">
+            <div class="progress-wrap">
+              <input class="form-control" type="number" min="0" max="100" step="1" data-row="${index}" data-field="progress" value="${escapeHtml(String(row.progress || ""))}" placeholder="0" />
+              <span class="percent-sign">%</span>
+            </div>
+          </td>
+          <td class="remark">
+            <textarea class="form-control" data-row="${index}" data-field="remark" placeholder="风险 / 备注 / 依赖">${escapeHtml(row.remark)}</textarea>
+          </td>
+        </tr>
+      `;
+    }
+
+    function renderSelect(field, index, value, options) {
+      const emptyOption = `<option value="">-</option>`;
+      const optionHtml = options.map((option) => {
+        const selected = option === value ? "selected" : "";
+        return `<option value="${escapeHtml(option)}" ${selected}>${escapeHtml(option)}</option>`;
+      }).join("");
+      return `<select class="form-select" data-row="${index}" data-field="${field}">${emptyOption}${optionHtml}</select>`;
+    }
+
+    function collectRowsFromTable() {
+      const selectedWeek = getSelectedWeek();
+      const rows = selectedWeek.days.map((date) => normalizeRow({ date }));
+
+      els.planTableBody.querySelectorAll("[data-row][data-field]").forEach((fieldEl) => {
+        const rowIndex = Number(fieldEl.dataset.row);
+        const field = fieldEl.dataset.field;
+        if (!Number.isInteger(rowIndex) || rowIndex < 0 || rowIndex > 4) return;
+        if (!FIELDS.includes(field)) return;
+        rows[rowIndex][field] = field === "progress" ? normalizeProgress(fieldEl.value) : fieldEl.value.trim();
+      });
+
+      return rows.map(normalizeRow);
+    }
+
+    function saveCurrentPlan(isAuto = false) {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = null;
+      }
+
+      ensureNestedPlanObject();
+      dataStore.plans[state.member][state.year][state.weekKey] = collectRowsFromTable();
+      dataStore.updatedAt = new Date().toISOString();
+      persistData();
+      updateSaveStatus(isAuto ? "已自动保存" : "已保存");
+      if (!isAuto) showToast("当前周计划已保存");
+    }
+
+    function scheduleAutoSave() {
+      if (autoSaveTimer) clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(() => saveCurrentPlan(true), AUTO_SAVE_DELAY);
+    }
+
+    function flushAutoSave() {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = null;
+        saveCurrentPlan(true);
+      }
+    }
+
+    function getSavedRows() {
+      return dataStore?.plans?.[state.member]?.[state.year]?.[state.weekKey] || [];
+    }
+
+    function ensureNestedPlanObject() {
+      if (!dataStore || typeof dataStore !== "object") dataStore = createEmptyStore();
+      if (!dataStore.plans || typeof dataStore.plans !== "object") dataStore.plans = {};
+      if (!dataStore.plans[state.member]) dataStore.plans[state.member] = {};
+      if (!dataStore.plans[state.member][state.year]) dataStore.plans[state.member][state.year] = {};
+    }
+
+    function clearCurrentWeek() {
+      const selectedWeek = getSelectedWeek();
+      const ok = confirm(`确定要清空 ${state.member} 的 ${selectedWeek.label} 数据吗？此操作会立即保存。`);
+      if (!ok) return;
+
+      ensureNestedPlanObject();
+      dataStore.plans[state.member][state.year][state.weekKey] = selectedWeek.days.map((date) => normalizeRow({ date }));
+      dataStore.updatedAt = new Date().toISOString();
+      persistData();
+      renderPlanTable();
+      updateSaveStatus("已清空");
+      showToast("当前周已清空");
+    }
+
+    function exportJson() {
+      flushAutoSave();
+      dataStore.exportedAt = new Date().toISOString();
+      const content = JSON.stringify(dataStore, null, 2);
+      const blob = new Blob([content], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `weekly_work_plan_data_${formatTimestampForFile(new Date())}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("JSON 已导出");
+    }
+
+    function importJson(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const imported = JSON.parse(reader.result);
+          const normalized = normalizeImportedStore(imported);
+          if (!normalized) {
+            alert("JSON 格式不正确：需要包含 plans 对象。请确认导入的是本工具导出的数据文件。");
+            return;
+          }
+
+          const ok = confirm("导入 JSON 会替换当前浏览器中的本地数据。是否继续？");
+          if (!ok) return;
+
+          dataStore = normalized;
+          dataStore.updatedAt = new Date().toISOString();
+          persistData();
+          renderPlanTable();
+          updateSaveStatus("已导入");
+          showToast("JSON 导入成功");
+        } catch (error) {
+          alert("JSON 解析失败，请检查文件内容。\n\n" + error.message);
+        } finally {
+          event.target.value = "";
+        }
+      };
+      reader.readAsText(file, "utf-8");
+    }
+
+    function buildWorkWeeks(year) {
+      const firstDay = new Date(year, 0, 1);
+      const lastDay = new Date(year, 11, 31);
+      let start = startOfWeekMonday(firstDay);
+      const weeks = [];
+      let weekNo = 1;
+
+      while (start <= lastDay) {
+        const days = Array.from({ length: 5 }, (_, index) => addDays(start, index)).map(formatDate);
+        const key = `${year}-W${pad2(weekNo)}`;
+        weeks.push({
+          key,
+          weekNo,
+          startDate: days[0],
+          endDate: days[4],
+          days,
+          label: `week${pad2(weekNo)} ${days[0]} ~ ${days[4]}`
+        });
+        start = addDays(start, 7);
+        weekNo += 1;
+      }
+
+      return weeks;
+    }
+
+    function getDefaultWeekKey(year) {
+      const today = new Date();
+      if (today.getFullYear() !== Number(year)) {
+        return weekOptions[0]?.key || "";
+      }
+
+      const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const match = weekOptions.find((week) => {
+        const monday = parseDate(week.startDate);
+        const sunday = addDays(monday, 6);
+        return todayOnly >= monday && todayOnly <= sunday;
+      });
+      return match?.key || weekOptions[0]?.key || "";
+    }
+
+    function getSelectedWeek() {
+      return weekOptions.find((week) => week.key === state.weekKey) || weekOptions[0];
+    }
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return createEmptyStore();
+        const parsed = JSON.parse(raw);
+        return normalizeImportedStore(parsed) || createEmptyStore();
+      } catch (error) {
+        console.warn("Failed to load local data:", error);
+        return createEmptyStore();
+      }
+    }
+
+    function createEmptyStore() {
+      return {
+        version: 2,
+        app: "Weekly Work Plan",
+        storageMode: "localStorage-json",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        members: MEMBERS.slice(),
+        plans: {}
+      };
+    }
+
+    function persistData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataStore));
+    }
+
+    function normalizeImportedStore(imported) {
+      if (!imported || typeof imported !== "object") return null;
+      if (!imported.plans || typeof imported.plans !== "object") return null;
+      return {
+        version: imported.version || 2,
+        app: imported.app || "Weekly Work Plan",
+        storageMode: imported.storageMode || "localStorage-json",
+        createdAt: imported.createdAt || new Date().toISOString(),
+        updatedAt: imported.updatedAt || new Date().toISOString(),
+        members: Array.isArray(imported.members) ? imported.members : MEMBERS.slice(),
+        plans: imported.plans
+      };
+    }
+
+    function normalizeRow(row) {
+      return {
+        date: row.date || "",
+        taskId: row.taskId || "",
+        workItem: row.workItem || "",
+        description: row.description || "",
+        priority: row.priority || "",
+        status: row.status || "",
+        progress: normalizeProgress(row.progress),
+        remark: row.remark || ""
+      };
+    }
+
+    function normalizeProgress(value) {
+      if (value === "" || value === null || value === undefined) return 0;
+      const number = Number(value);
+      if (!Number.isFinite(number)) return 0;
+      return Math.min(100, Math.max(0, Math.round(number)));
+    }
+
+    function normalizeProgressInput(input) {
+      if (!input || input.dataset.field !== "progress") return;
+      if (input.value === "") return;
+      input.value = normalizeProgress(input.value);
+    }
+
+    function normalizeYear(value) {
+      const currentYear = new Date().getFullYear();
+      const year = Number(value);
+      if (!Number.isInteger(year)) return currentYear;
+      return Math.min(2100, Math.max(2000, year));
+    }
+
+    function startOfWeekMonday(date) {
+      const copied = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const day = copied.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      copied.setDate(copied.getDate() + diff);
+      return copied;
+    }
+
+    function addDays(date, days) {
+      const copied = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      copied.setDate(copied.getDate() + days);
+      return copied;
+    }
+
+    function parseDate(value) {
+      const [year, month, day] = value.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    function formatDate(date) {
+      const year = date.getFullYear();
+      const month = pad2(date.getMonth() + 1);
+      const day = pad2(date.getDate());
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatTimestampForFile(date) {
+      return `${date.getFullYear()}${pad2(date.getMonth() + 1)}${pad2(date.getDate())}_${pad2(date.getHours())}${pad2(date.getMinutes())}${pad2(date.getSeconds())}`;
+    }
+
+    function pad2(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function isEditableField(target) {
+      return target && target.matches && target.matches("[data-row][data-field]");
+    }
+
+    function updateSaveStatus(prefix) {
+      const time = new Date().toLocaleTimeString();
+      els.saveStatus.textContent = `${prefix} ${time}`;
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        els.toast.classList.remove("show");
+      }, 1800);
+    }
+
+    init();
+  </script>
+</body>
+</html>
