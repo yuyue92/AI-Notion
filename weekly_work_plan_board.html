@@ -1,0 +1,1570 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Weekly Work Plan Board</title>
+  <style>
+    :root {
+      --primary: #0d6efd;
+      --primary-dark: #0a58ca;
+      --success: #198754;
+      --danger: #dc3545;
+      --warning: #ffc107;
+      --info: #0dcaf0;
+      --light: #f8f9fa;
+      --border: #dee2e6;
+      --text: #212529;
+      --muted: #6c757d;
+      --bg: #f3f6fb;
+      --card: #ffffff;
+      --pending: #fff7e6;
+      --processing: #eaf4ff;
+      --done: #eaf8f0;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #eef5ff 0%, #f7f9fc 45%, #ffffff 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1560px;
+      margin: 0 auto;
+      padding: 26px 18px 44px;
+    }
+
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      margin-bottom: 16px;
+    }
+
+    .app-title {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+      color: #102a43;
+    }
+
+    .app-subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #b6d4fe;
+      background: #e7f1ff;
+      color: #084298;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(222, 226, 230, 0.85);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      overflow: visible;
+    }
+
+    .card-body { padding: 16px; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field-sm { flex: 0 0 128px; }
+    .field-md { flex: 0 0 185px; }
+    .field-lg { flex: 0 0 305px; }
+    .field-actions { flex: 1 1 560px; }
+
+    label {
+      font-weight: 650;
+      font-size: 13px;
+      color: #334155;
+    }
+
+    .form-control, .form-select {
+      width: 100%;
+      border: 1px solid #ced4da;
+      border-radius: 10px;
+      padding: 7px 10px;
+      min-height: 34px;
+      font-size: 13px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    textarea.form-control {
+      resize: vertical;
+      min-height: 64px;
+      line-height: 1.4;
+    }
+
+    .form-control:focus, .form-select:focus {
+      border-color: #86b7fe;
+      box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+    }
+
+    .readonly-input {
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 650;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 7px 10px;
+      min-height: 34px;
+      font-weight: 650;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline-primary { background: #fff; color: var(--primary); border-color: var(--primary); }
+    .btn-outline-primary:hover { background: #e7f1ff; }
+    .btn-outline-secondary { background: #fff; color: #495057; border-color: #adb5bd; }
+    .btn-outline-secondary:hover { background: #f8f9fa; }
+    .btn-outline-danger { background: #fff; color: var(--danger); border-color: var(--danger); }
+    .btn-outline-danger:hover { background: #fff5f5; }
+    .btn-sm { min-height: 28px; padding: 4px 8px; font-size: 12px; border-radius: 8px; }
+
+    .save-status {
+      color: var(--muted);
+      font-size: 13px;
+      min-width: 112px;
+      white-space: nowrap;
+    }
+
+    .week-strip {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed #d7dee8;
+    }
+
+    .slot-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid #dbe4ef;
+      background: #f8fafc;
+      color: #334155;
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 12px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .table-card { overflow: visible; }
+
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: #fbfdff;
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .table-title {
+      margin: 0;
+      font-size: 17px;
+      color: #102a43;
+    }
+
+    .table-hint {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table.board-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 1180px;
+    }
+
+    .board-table th {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      color: #334155;
+      padding: 11px 10px;
+      text-align: left;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .board-table td {
+      border-bottom: 1px solid #edf2f7;
+      padding: 10px;
+      vertical-align: top;
+      background: #fff;
+    }
+
+    .board-table tr:hover td { background: #fbfdff; }
+    .board-table tr.focused td { background: #fffdf5; box-shadow: inset 0 0 0 9999px rgba(255, 193, 7, 0.05); }
+
+    .member-cell {
+      width: 132px;
+      min-width: 132px;
+      position: sticky;
+      left: 0;
+      z-index: 3;
+      background: #fff !important;
+      border-right: 1px solid #edf2f7;
+    }
+
+    .member-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }
+
+    .member-meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .status-cell { min-width: 310px; width: 31%; }
+
+    .dropzone {
+      min-height: 102px;
+      border: 1px dashed #d5dde8;
+      border-radius: 12px;
+      background: #fcfdff;
+      padding: 8px;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .dropzone.pending { background: linear-gradient(180deg, var(--pending), #fff 44%); }
+    .dropzone.processing { background: linear-gradient(180deg, var(--processing), #fff 44%); }
+    .dropzone.done { background: linear-gradient(180deg, var(--done), #fff 44%); }
+    .dropzone.drag-over { border-color: var(--primary); background: #eef6ff; }
+
+    .column-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .item-count {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .empty-hint {
+      color: #94a3b8;
+      font-size: 13px;
+      padding: 13px 6px 8px;
+      text-align: center;
+    }
+
+    .item-card {
+      position: relative;
+      border: 1px solid #dfe6ef;
+      border-left: 4px solid var(--primary);
+      background: #fff;
+      border-radius: 12px;
+      padding: 9px 10px;
+      margin-bottom: 8px;
+      cursor: grab;
+      box-shadow: 0 5px 14px rgba(15, 23, 42, 0.06);
+    }
+
+    .item-card:active { cursor: grabbing; }
+    .item-card[data-status="pending"] { border-left-color: #f59f00; }
+    .item-card[data-status="processing"] { border-left-color: #0d6efd; }
+    .item-card[data-status="done"] { border-left-color: #198754; }
+
+    .item-title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .item-title {
+      font-weight: 750;
+      color: #172033;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .item-actions {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+      flex: 0 0 auto;
+    }
+
+    .icon-btn {
+      border: 1px solid #d6dee9;
+      background: #fff;
+      color: #334155;
+      border-radius: 7px;
+      padding: 2px 6px;
+      font-size: 12px;
+      cursor: pointer;
+      line-height: 1.5;
+    }
+
+    .icon-btn:hover { background: #f8fafc; }
+    .icon-btn.danger { color: var(--danger); border-color: #f0b7be; }
+
+    .item-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      border-radius: 999px;
+      padding: 3px 7px;
+      font-weight: 650;
+    }
+
+    .item-popover {
+      display: none;
+      position: absolute;
+      left: 12px;
+      top: calc(100% + 6px);
+      z-index: 60;
+      width: min(540px, 76vw);
+      max-height: 360px;
+      overflow: auto;
+      border: 1px solid #cfd8e3;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+      padding: 10px;
+    }
+
+    .item-card:hover .item-popover { display: block; }
+
+    .popover-title {
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .popover-row {
+      border-top: 1px solid #edf2f7;
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+
+    .popover-desc {
+      font-size: 13px;
+      color: #334155;
+      line-height: 1.45;
+      margin-bottom: 6px;
+      white-space: pre-wrap;
+    }
+
+    .mini-slots {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 3px;
+    }
+
+    .mini-slot {
+      height: 18px;
+      border: 1px solid #dbe4ef;
+      border-radius: 5px;
+      background: #f8fafc;
+      color: #64748b;
+      font-size: 10px;
+      line-height: 16px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .mini-slot.checked {
+      background: #d1e7dd;
+      border-color: #9ed2b3;
+      color: #0f5132;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.45);
+      z-index: 2000;
+      padding: 20px;
+    }
+
+    .modal-backdrop.show { display: flex; }
+
+    .modal-card {
+      width: min(1120px, 96vw);
+      max-height: 92vh;
+      overflow: hidden;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 22px 70px rgba(15, 23, 42, 0.28);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      background: #fbfdff;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 18px;
+      color: #102a43;
+    }
+
+    .modal-subtitle {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .modal-body {
+      padding: 16px 18px;
+      overflow: auto;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+      background: #fbfdff;
+    }
+
+    .desc-row {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #fff;
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .desc-row-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .desc-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #334155;
+    }
+
+    .slot-grid {
+      display: grid;
+      grid-template-columns: repeat(10, minmax(58px, 1fr));
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .slot-check {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border: 1px solid #dbe4ef;
+      border-radius: 8px;
+      background: #f8fafc;
+      padding: 6px 4px;
+      font-size: 11px;
+      font-weight: 750;
+      color: #334155;
+      user-select: none;
+    }
+
+    .slot-check input { margin: 0; }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: #0f172a;
+      color: #fff;
+      border-radius: 12px;
+      padding: 11px 14px;
+      box-shadow: var(--shadow);
+      font-size: 14px;
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      z-index: 3000;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      margin: 8px 2px 0;
+    }
+
+    @media (max-width: 980px) {
+      .app-header { flex-direction: column; }
+      .field-sm, .field-md, .field-lg, .field-actions { flex: 1 1 220px; }
+      .slot-grid { grid-template-columns: repeat(5, minmax(70px, 1fr)); }
+    }
+
+    @media (max-width: 560px) {
+      .container { padding: 20px 12px 34px; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .app-title { font-size: 24px; }
+      .modal-footer { flex-direction: column; align-items: stretch; }
+      .modal-footer .actions { width: 100%; }
+      .slot-grid { grid-template-columns: repeat(2, minmax(110px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="app-header">
+      <div>
+        <h1 class="app-title">Weekly Work Plan Board</h1>
+        <p class="app-subtitle">按周管理团队任务：成员行 + Pending / Processing / Done 看板列；每个任务可维护 description 与 10 个半天勾选。</p>
+      </div>
+      <span class="badge">💾 Auto Save: localStorage + JSON Backup</span>
+    </header>
+
+    <section class="card">
+      <div class="card-body">
+        <div class="toolbar">
+          <div class="form-group field-md">
+            <label for="focusMemberSelect">Team Member</label>
+            <select id="focusMemberSelect" class="form-select"></select>
+          </div>
+          <div class="form-group field-sm">
+            <label for="yearInput">Year</label>
+            <input id="yearInput" class="form-control" type="number" min="2000" max="2100" step="1" />
+          </div>
+          <div class="form-group field-lg">
+            <label for="weekSelect">Week</label>
+            <select id="weekSelect" class="form-select"></select>
+          </div>
+          <div class="form-group field-md">
+            <label for="startDateDisplay">StartDate</label>
+            <input id="startDateDisplay" class="form-control readonly-input" type="text" readonly />
+          </div>
+          <div class="form-group field-md">
+            <label for="endDateDisplay">EndDate</label>
+            <input id="endDateDisplay" class="form-control readonly-input" type="text" readonly />
+          </div>
+          <div class="form-group field-actions">
+            <label>&nbsp;</label>
+            <div class="actions">
+              <button id="saveBtn" class="btn btn-primary" type="button">保存</button>
+              <button id="exportBtn" class="btn btn-outline-primary" type="button">导出 JSON</button>
+              <button id="importBtn" class="btn btn-outline-secondary" type="button">导入 JSON</button>
+              <button id="clearWeekBtn" class="btn btn-outline-danger" type="button">清空当前周</button>
+              <span id="saveStatus" class="save-status">尚未保存</span>
+              <input id="importFile" type="file" accept="application/json,.json" hidden />
+            </div>
+          </div>
+        </div>
+        <div id="weekSlotStrip" class="week-strip" aria-label="Current week half-day slots"></div>
+      </div>
+    </section>
+
+    <section class="card table-card">
+      <div class="table-header">
+        <div>
+          <h2 class="table-title" id="tableTitle">Team Board</h2>
+          <div class="table-hint">点击“新增 item”添加任务；点击卡片编辑 description；鼠标停在卡片上可预览；拖拽卡片到其他状态列会复制一份。</div>
+        </div>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-responsive">
+          <table class="board-table" aria-label="Weekly work plan board table">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Pending</th>
+                <th>Processing</th>
+                <th>Done</th>
+              </tr>
+            </thead>
+            <tbody id="boardBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <p class="footer-note">
+      数据保存到当前浏览器 localStorage。更换电脑/浏览器前请先导出 JSON。成员列表可在文件顶部 JavaScript 的 MEMBERS 数组中修改。
+    </p>
+  </div>
+
+  <div id="itemModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="modalTitle" class="modal-title">Edit Work Item</h3>
+          <div id="modalSubtitle" class="modal-subtitle"></div>
+        </div>
+        <button id="modalCloseBtn" class="btn btn-outline-secondary btn-sm" type="button">关闭</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="modalItemTitle">Work Item</label>
+          <input id="modalItemTitle" class="form-control" type="text" placeholder="请输入 work item" />
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;">
+          <strong style="color:#334155;">Descriptions</strong>
+          <button id="addDescBtn" class="btn btn-outline-primary btn-sm" type="button">新增 description</button>
+        </div>
+        <div id="descriptionList"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="deleteItemBtn" class="btn btn-outline-danger" type="button">删除这个 item</button>
+        <div class="actions">
+          <button id="modalCancelBtn" class="btn btn-outline-secondary" type="button">取消</button>
+          <button id="modalSaveBtn" class="btn btn-primary" type="button">保存 item</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ====== 可按实际小组成员修改这里 ======
+    //const MEMBERS = ["张三", "李四", "王五", "赵六", "钱七", "孙八"];
+    const MEMBERS = ["Huang, Peng", "Huang, Zhi", "Yu, Yue", "Shu, Bo", "Jim", "Li, BaoJie"];
+
+    const STORAGE_KEY = "weekly_work_plan_board_data_v1";
+    const AUTO_SAVE_DELAY = 350;
+    const STATUS_KEYS = ["pending", "processing", "done"];
+    const STATUS_LABELS = {
+      pending: "Pending",
+      processing: "Processing",
+      done: "Done"
+    };
+    const STATUS_EMPTY_TEXT = {
+      pending: "暂无 Pending item",
+      processing: "暂无 Processing item，可新增或从其他列拖拽复制",
+      done: "暂无 Done item，可新增或从其他列拖拽复制"
+    };
+    const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+    const HALF_DAY_LABELS = ["AM", "PM"];
+
+    const els = {
+      focusMemberSelect: document.getElementById("focusMemberSelect"),
+      yearInput: document.getElementById("yearInput"),
+      weekSelect: document.getElementById("weekSelect"),
+      startDateDisplay: document.getElementById("startDateDisplay"),
+      endDateDisplay: document.getElementById("endDateDisplay"),
+      saveBtn: document.getElementById("saveBtn"),
+      exportBtn: document.getElementById("exportBtn"),
+      importBtn: document.getElementById("importBtn"),
+      importFile: document.getElementById("importFile"),
+      clearWeekBtn: document.getElementById("clearWeekBtn"),
+      saveStatus: document.getElementById("saveStatus"),
+      weekSlotStrip: document.getElementById("weekSlotStrip"),
+      tableTitle: document.getElementById("tableTitle"),
+      boardBody: document.getElementById("boardBody"),
+      itemModal: document.getElementById("itemModal"),
+      modalTitle: document.getElementById("modalTitle"),
+      modalSubtitle: document.getElementById("modalSubtitle"),
+      modalItemTitle: document.getElementById("modalItemTitle"),
+      descriptionList: document.getElementById("descriptionList"),
+      addDescBtn: document.getElementById("addDescBtn"),
+      deleteItemBtn: document.getElementById("deleteItemBtn"),
+      modalCloseBtn: document.getElementById("modalCloseBtn"),
+      modalCancelBtn: document.getElementById("modalCancelBtn"),
+      modalSaveBtn: document.getElementById("modalSaveBtn"),
+      toast: document.getElementById("toast")
+    };
+
+    let dataStore = loadData();
+    let weekOptions = [];
+    let state = {
+      focusMember: MEMBERS[0],
+      year: new Date().getFullYear(),
+      weekKey: ""
+    };
+    let autoSaveTimer = null;
+    let toastTimer = null;
+    let dragPayload = null;
+    let editingRef = null;
+
+    function init() {
+      validateRequiredDom();
+      renderFocusMembers();
+      els.yearInput.value = state.year;
+      renderWeekOptions(state.year);
+      state.weekKey = getDefaultWeekKey(state.year);
+      syncControlsFromState();
+      renderBoard();
+      bindEvents();
+      updateSaveStatus("已载入本地数据");
+    }
+
+    function validateRequiredDom() {
+      const missing = Object.entries(els).filter(([, value]) => !value).map(([key]) => key);
+      if (missing.length) {
+        throw new Error("Missing required DOM nodes: " + missing.join(", "));
+      }
+    }
+
+    function bindEvents() {
+      els.focusMemberSelect.addEventListener("change", () => {
+        state.focusMember = els.focusMemberSelect.value;
+        focusMemberRow(state.focusMember);
+      });
+
+      els.yearInput.addEventListener("change", () => {
+        flushAutoSave();
+        const nextYear = normalizeYear(els.yearInput.value);
+        state.year = nextYear;
+        els.yearInput.value = nextYear;
+        renderWeekOptions(nextYear);
+        state.weekKey = getDefaultWeekKey(nextYear);
+        syncControlsFromState();
+        renderBoard();
+      });
+
+      els.weekSelect.addEventListener("change", () => {
+        flushAutoSave();
+        state.weekKey = els.weekSelect.value;
+        renderBoard();
+      });
+
+      els.boardBody.addEventListener("click", handleBoardClick);
+      els.boardBody.addEventListener("dragstart", handleDragStart);
+      els.boardBody.addEventListener("dragend", handleDragEnd);
+      els.boardBody.addEventListener("dragover", handleDragOver);
+      els.boardBody.addEventListener("dragleave", handleDragLeave);
+      els.boardBody.addEventListener("drop", handleDrop);
+
+      els.saveBtn.addEventListener("click", () => saveCurrentWeek(false));
+      els.exportBtn.addEventListener("click", exportJson);
+      els.importBtn.addEventListener("click", () => els.importFile.click());
+      els.importFile.addEventListener("change", importJson);
+      els.clearWeekBtn.addEventListener("click", clearCurrentWeek);
+
+      els.addDescBtn.addEventListener("click", () => appendDescriptionRow({ id: createId("desc"), text: "", slots: createEmptySlots() }));
+      els.descriptionList.addEventListener("click", handleDescriptionListClick);
+      els.modalCloseBtn.addEventListener("click", closeItemModal);
+      els.modalCancelBtn.addEventListener("click", closeItemModal);
+      els.modalSaveBtn.addEventListener("click", saveItemFromModal);
+      els.deleteItemBtn.addEventListener("click", deleteItemFromModal);
+      els.itemModal.addEventListener("click", (event) => {
+        if (event.target === els.itemModal) closeItemModal();
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && els.itemModal.classList.contains("show")) closeItemModal();
+      });
+
+      window.addEventListener("beforeunload", () => flushAutoSave());
+    }
+
+    function renderFocusMembers() {
+      els.focusMemberSelect.innerHTML = MEMBERS.map((name) => {
+        return `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+      }).join("");
+    }
+
+    function renderWeekOptions(year) {
+      weekOptions = buildWorkWeeks(year);
+      els.weekSelect.innerHTML = weekOptions.map((week) => {
+        return `<option value="${escapeHtml(week.key)}">${escapeHtml(week.label)}</option>`;
+      }).join("");
+    }
+
+    function syncControlsFromState() {
+      els.focusMemberSelect.value = state.focusMember;
+      els.yearInput.value = state.year;
+      els.weekSelect.value = state.weekKey;
+    }
+
+    function renderBoard() {
+      const selectedWeek = getSelectedWeek();
+      if (!selectedWeek) return;
+
+      ensureCurrentWeekData();
+      syncControlsFromState();
+      els.startDateDisplay.value = selectedWeek.startDate;
+      els.endDateDisplay.value = selectedWeek.endDate;
+      els.tableTitle.textContent = `Team Board - ${selectedWeek.label}`;
+      renderWeekSlotStrip(selectedWeek);
+
+      const weekData = getCurrentWeekData();
+      els.boardBody.innerHTML = MEMBERS.map((member) => renderMemberRow(member, weekData[member])).join("");
+      focusMemberRow(state.focusMember, false);
+    }
+
+    function renderWeekSlotStrip(week) {
+      els.weekSlotStrip.innerHTML = buildSlotLabels(week).map((slot) => {
+        return `<span class="slot-chip">${escapeHtml(slot.short)} <span style="color:#64748b;">${escapeHtml(slot.date)}</span></span>`;
+      }).join("");
+    }
+
+    function renderMemberRow(member, memberData) {
+      const total = STATUS_KEYS.reduce((sum, status) => sum + (memberData?.[status]?.length || 0), 0);
+      return `
+        <tr data-member="${escapeHtml(member)}">
+          <td class="member-cell">
+            <div class="member-name">${escapeHtml(member)}</div>
+            <div class="member-meta">${total} item${total === 1 ? "" : "s"}<br>拖拽卡片可复制到其他状态列</div>
+          </td>
+          ${STATUS_KEYS.map((status) => renderStatusCell(member, status, memberData?.[status] || [])).join("")}
+        </tr>
+      `;
+    }
+
+    function renderStatusCell(member, status, items) {
+      return `
+        <td class="status-cell">
+          <div class="dropzone ${status}" data-member="${escapeHtml(member)}" data-status="${status}">
+            <div class="column-topline">
+              <span class="item-count">${STATUS_LABELS[status]} · ${items.length}</span>
+              <button class="btn btn-outline-primary btn-sm" type="button" data-action="add-item" data-member="${escapeHtml(member)}" data-status="${status}">新增 item</button>
+            </div>
+            <div class="item-list">
+              ${items.length ? items.map((item) => renderItemCard(member, status, item)).join("") : `<div class="empty-hint">${STATUS_EMPTY_TEXT[status]}</div>`}
+            </div>
+          </div>
+        </td>
+      `;
+    }
+
+    function renderItemCard(member, status, item) {
+      const checkedCount = countCheckedSlots(item);
+      const descCount = item.descriptions.length;
+      return `
+        <div class="item-card" draggable="true" data-member="${escapeHtml(member)}" data-status="${status}" data-item-id="${escapeHtml(item.id)}">
+          <div class="item-title-row">
+            <div class="item-title">${escapeHtml(item.title || "Untitled item")}</div>
+            <div class="item-actions">
+              <button class="icon-btn" type="button" data-action="edit-item" data-member="${escapeHtml(member)}" data-status="${status}" data-item-id="${escapeHtml(item.id)}">编辑</button>
+              <button class="icon-btn danger" type="button" data-action="delete-item" data-member="${escapeHtml(member)}" data-status="${status}" data-item-id="${escapeHtml(item.id)}">删</button>
+            </div>
+          </div>
+          <div class="item-meta">
+            <span class="meta-pill">${descCount} desc</span>
+            <span class="meta-pill">${checkedCount}/10 checked</span>
+          </div>
+          ${renderItemPopover(item)}
+        </div>
+      `;
+    }
+
+    function renderItemPopover(item) {
+      const rows = item.descriptions.length
+        ? item.descriptions.map((desc, index) => renderPopoverDescription(desc, index)).join("")
+        : `<div class="popover-row"><div class="popover-desc">暂无 description，点击卡片编辑。</div></div>`;
+      return `
+        <div class="item-popover">
+          <div class="popover-title">${escapeHtml(item.title || "Untitled item")}</div>
+          ${rows}
+        </div>
+      `;
+    }
+
+    function renderPopoverDescription(desc, index) {
+      const text = desc.text || `Description ${index + 1}`;
+      return `
+        <div class="popover-row">
+          <div class="popover-desc">${escapeHtml(text)}</div>
+          <div class="mini-slots">
+            ${normalizeSlots(desc.slots).map((checked, slotIndex) => {
+              return `<span class="mini-slot ${checked ? "checked" : ""}">${checked ? "✓" : slotIndex + 1}</span>`;
+            }).join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    function handleBoardClick(event) {
+      const actionEl = event.target.closest("[data-action]");
+      const cardEl = event.target.closest(".item-card");
+
+      if (actionEl) {
+        event.stopPropagation();
+        const action = actionEl.dataset.action;
+        const member = actionEl.dataset.member;
+        const status = actionEl.dataset.status;
+        const itemId = actionEl.dataset.itemId;
+
+        if (action === "add-item") addItem(member, status);
+        if (action === "edit-item") openItemModal(member, status, itemId);
+        if (action === "delete-item") deleteItem(member, status, itemId);
+        return;
+      }
+
+      if (cardEl) {
+        openItemModal(cardEl.dataset.member, cardEl.dataset.status, cardEl.dataset.itemId);
+      }
+    }
+
+    function addItem(member, status) {
+      const title = prompt(`为 ${member} 的 ${STATUS_LABELS[status]} 新增 work item：`);
+      if (title === null) return;
+      const cleanTitle = title.trim();
+      if (!cleanTitle) {
+        showToast("work item 不能为空");
+        return;
+      }
+      const item = createItem(cleanTitle);
+      getMemberStatusItems(member, status).push(item);
+      renderBoard();
+      scheduleAutoSave();
+      showToast("已新增 item");
+    }
+
+    function deleteItem(member, status, itemId) {
+      const item = findItem(member, status, itemId);
+      if (!item) return;
+      const ok = confirm(`确定删除这个 item 吗？\n\n${item.title}`);
+      if (!ok) return;
+      removeItem(member, status, itemId);
+      renderBoard();
+      scheduleAutoSave();
+      showToast("已删除 item");
+    }
+
+    function openItemModal(member, status, itemId) {
+      const item = findItem(member, status, itemId);
+      if (!item) return;
+      editingRef = { member, status, itemId };
+      els.modalTitle.textContent = "Edit Work Item";
+      els.modalSubtitle.textContent = `${member} / ${STATUS_LABELS[status]} / ${getSelectedWeek().label}`;
+      els.modalItemTitle.value = item.title || "";
+      els.descriptionList.innerHTML = "";
+      const descriptions = item.descriptions.length ? item.descriptions : [{ id: createId("desc"), text: "", slots: createEmptySlots() }];
+      descriptions.forEach((desc) => appendDescriptionRow(desc));
+      els.itemModal.classList.add("show");
+      setTimeout(() => els.modalItemTitle.focus(), 0);
+    }
+
+    function closeItemModal() {
+      els.itemModal.classList.remove("show");
+      editingRef = null;
+      els.descriptionList.innerHTML = "";
+    }
+
+    function appendDescriptionRow(desc) {
+      const descId = desc.id || createId("desc");
+      const slots = normalizeSlots(desc.slots);
+      const wrapper = document.createElement("div");
+      wrapper.className = "desc-row";
+      wrapper.dataset.descId = descId;
+      wrapper.innerHTML = `
+        <div class="desc-row-head">
+          <span class="desc-title">Description</span>
+          <button class="btn btn-outline-danger btn-sm" type="button" data-action="remove-desc">删除 description</button>
+        </div>
+        <textarea class="form-control desc-text" placeholder="填写 description 细分事项">${escapeHtml(desc.text || "")}</textarea>
+        <div class="slot-grid">
+          ${buildSlotLabels(getSelectedWeek()).map((slot, index) => `
+            <label class="slot-check" title="${escapeHtml(slot.date)} ${escapeHtml(slot.short)}">
+              <input type="checkbox" class="slot-input" data-slot-index="${index}" ${slots[index] ? "checked" : ""} />
+              <span>${escapeHtml(slot.short)}</span>
+            </label>
+          `).join("")}
+        </div>
+      `;
+      els.descriptionList.appendChild(wrapper);
+    }
+
+    function handleDescriptionListClick(event) {
+      const btn = event.target.closest("[data-action='remove-desc']");
+      if (!btn) return;
+      const rows = Array.from(els.descriptionList.querySelectorAll(".desc-row"));
+      if (rows.length <= 1) {
+        showToast("至少保留一条 description");
+        return;
+      }
+      btn.closest(".desc-row")?.remove();
+    }
+
+    function saveItemFromModal() {
+      if (!editingRef) return;
+      const item = findItem(editingRef.member, editingRef.status, editingRef.itemId);
+      if (!item) return;
+
+      const title = els.modalItemTitle.value.trim();
+      if (!title) {
+        alert("Work Item 不能为空");
+        els.modalItemTitle.focus();
+        return;
+      }
+
+      const descriptions = Array.from(els.descriptionList.querySelectorAll(".desc-row")).map((row) => {
+        const text = row.querySelector(".desc-text")?.value.trim() || "";
+        const slots = createEmptySlots();
+        row.querySelectorAll(".slot-input").forEach((input) => {
+          const index = Number(input.dataset.slotIndex);
+          if (Number.isInteger(index) && index >= 0 && index < 10) slots[index] = input.checked;
+        });
+        return {
+          id: row.dataset.descId || createId("desc"),
+          text,
+          slots
+        };
+      });
+
+      item.title = title;
+      item.descriptions = descriptions.length ? descriptions : [{ id: createId("desc"), text: "", slots: createEmptySlots() }];
+      item.updatedAt = new Date().toISOString();
+      closeItemModal();
+      renderBoard();
+      scheduleAutoSave();
+      showToast("item 已保存");
+    }
+
+    function deleteItemFromModal() {
+      if (!editingRef) return;
+      const item = findItem(editingRef.member, editingRef.status, editingRef.itemId);
+      if (!item) return;
+      const ok = confirm(`确定删除这个 item 吗？\n\n${item.title}`);
+      if (!ok) return;
+      removeItem(editingRef.member, editingRef.status, editingRef.itemId);
+      closeItemModal();
+      renderBoard();
+      scheduleAutoSave();
+      showToast("item 已删除");
+    }
+
+    function handleDragStart(event) {
+      const card = event.target.closest(".item-card");
+      if (!card) return;
+      dragPayload = {
+        member: card.dataset.member,
+        status: card.dataset.status,
+        itemId: card.dataset.itemId
+      };
+      event.dataTransfer.effectAllowed = "copy";
+      event.dataTransfer.setData("text/plain", JSON.stringify(dragPayload));
+    }
+
+    function handleDragEnd() {
+      dragPayload = null;
+      document.querySelectorAll(".dropzone.drag-over").forEach((zone) => zone.classList.remove("drag-over"));
+    }
+
+    function handleDragOver(event) {
+      const zone = event.target.closest(".dropzone");
+      if (!zone) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      zone.classList.add("drag-over");
+    }
+
+    function handleDragLeave(event) {
+      const zone = event.target.closest(".dropzone");
+      if (!zone) return;
+      if (!zone.contains(event.relatedTarget)) zone.classList.remove("drag-over");
+    }
+
+    function handleDrop(event) {
+      const zone = event.target.closest(".dropzone");
+      if (!zone) return;
+      event.preventDefault();
+      zone.classList.remove("drag-over");
+
+      let payload = dragPayload;
+      try {
+        const raw = event.dataTransfer.getData("text/plain");
+        if (raw) payload = JSON.parse(raw);
+      } catch (error) {
+        payload = dragPayload;
+      }
+      if (!payload) return;
+
+      const targetMember = zone.dataset.member;
+      const targetStatus = zone.dataset.status;
+      const sourceItem = findItem(payload.member, payload.status, payload.itemId);
+      if (!sourceItem) return;
+
+      const copied = deepCopyItem(sourceItem);
+      copied.id = createId("item");
+      copied.title = sourceItem.title;
+      copied.createdAt = new Date().toISOString();
+      copied.updatedAt = new Date().toISOString();
+      getMemberStatusItems(targetMember, targetStatus).push(copied);
+      renderBoard();
+      scheduleAutoSave();
+      showToast(`已复制到 ${targetMember} / ${STATUS_LABELS[targetStatus]}`);
+    }
+
+    function saveCurrentWeek(isAuto = false) {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = null;
+      }
+      ensureCurrentWeekData();
+      dataStore.updatedAt = new Date().toISOString();
+      persistData();
+      updateSaveStatus(isAuto ? "已自动保存" : "已保存");
+      if (!isAuto) showToast("当前周看板已保存");
+    }
+
+    function scheduleAutoSave() {
+      if (autoSaveTimer) clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(() => saveCurrentWeek(true), AUTO_SAVE_DELAY);
+    }
+
+    function flushAutoSave() {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = null;
+        saveCurrentWeek(true);
+      }
+    }
+
+    function exportJson() {
+      flushAutoSave();
+      dataStore.exportedAt = new Date().toISOString();
+      const content = JSON.stringify(dataStore, null, 2);
+      const blob = new Blob([content], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `weekly_work_plan_board_data_${formatTimestampForFile(new Date())}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("JSON 已导出");
+    }
+
+    function importJson(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const imported = JSON.parse(reader.result);
+          const normalized = normalizeImportedStore(imported);
+          if (!normalized) {
+            alert("JSON 格式不正确：请导入本工具导出的 weekly work plan board JSON 文件。");
+            return;
+          }
+          const ok = confirm("导入 JSON 会替换当前浏览器中的本地数据。是否继续？");
+          if (!ok) return;
+          dataStore = normalized;
+          dataStore.updatedAt = new Date().toISOString();
+          persistData();
+          renderBoard();
+          updateSaveStatus("已导入 JSON");
+          showToast("JSON 导入成功");
+        } catch (error) {
+          alert("JSON 解析失败，请检查文件内容。\n\n" + error.message);
+        } finally {
+          event.target.value = "";
+        }
+      };
+      reader.readAsText(file, "utf-8");
+    }
+
+    function clearCurrentWeek() {
+      const selectedWeek = getSelectedWeek();
+      const ok = confirm(`确定要清空 ${selectedWeek.label} 的全部成员看板数据吗？此操作会立即保存。`);
+      if (!ok) return;
+      ensurePlanPath();
+      dataStore.plans[state.year][state.weekKey] = createEmptyWeekData();
+      dataStore.updatedAt = new Date().toISOString();
+      persistData();
+      renderBoard();
+      updateSaveStatus("已清空当前周");
+      showToast("当前周已清空");
+    }
+
+    function ensurePlanPath() {
+      if (!dataStore || typeof dataStore !== "object") dataStore = createEmptyStore();
+      if (!dataStore.plans || typeof dataStore.plans !== "object") dataStore.plans = {};
+      if (!dataStore.plans[state.year]) dataStore.plans[state.year] = {};
+    }
+
+    function ensureCurrentWeekData() {
+      ensurePlanPath();
+      if (!dataStore.plans[state.year][state.weekKey]) {
+        dataStore.plans[state.year][state.weekKey] = createEmptyWeekData();
+      }
+      const weekData = dataStore.plans[state.year][state.weekKey];
+      MEMBERS.forEach((member) => {
+        if (!weekData[member]) weekData[member] = createEmptyMemberData();
+        STATUS_KEYS.forEach((status) => {
+          if (!Array.isArray(weekData[member][status])) weekData[member][status] = [];
+          weekData[member][status] = weekData[member][status].map(normalizeItem);
+        });
+      });
+    }
+
+    function getCurrentWeekData() {
+      ensureCurrentWeekData();
+      return dataStore.plans[state.year][state.weekKey];
+    }
+
+    function getMemberStatusItems(member, status) {
+      const weekData = getCurrentWeekData();
+      if (!weekData[member]) weekData[member] = createEmptyMemberData();
+      if (!Array.isArray(weekData[member][status])) weekData[member][status] = [];
+      return weekData[member][status];
+    }
+
+    function findItem(member, status, itemId) {
+      return getMemberStatusItems(member, status).find((item) => item.id === itemId);
+    }
+
+    function removeItem(member, status, itemId) {
+      const items = getMemberStatusItems(member, status);
+      const index = items.findIndex((item) => item.id === itemId);
+      if (index >= 0) items.splice(index, 1);
+    }
+
+    function createEmptyStore() {
+      return {
+        version: 2,
+        app: "Weekly Work Plan Board",
+        storageMode: "localStorage-json",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        members: MEMBERS.slice(),
+        plans: {}
+      };
+    }
+
+    function createEmptyWeekData() {
+      const weekData = {};
+      MEMBERS.forEach((member) => {
+        weekData[member] = createEmptyMemberData();
+      });
+      return weekData;
+    }
+
+    function createEmptyMemberData() {
+      return {
+        pending: [],
+        processing: [],
+        done: []
+      };
+    }
+
+    function createItem(title) {
+      const now = new Date().toISOString();
+      return {
+        id: createId("item"),
+        title,
+        descriptions: [
+          {
+            id: createId("desc"),
+            text: "",
+            slots: createEmptySlots()
+          }
+        ],
+        createdAt: now,
+        updatedAt: now
+      };
+    }
+
+    function normalizeImportedStore(imported) {
+      if (!imported || typeof imported !== "object") return null;
+      if (!imported.plans || typeof imported.plans !== "object") return null;
+      return {
+        version: 2,
+        app: imported.app || "Weekly Work Plan Board",
+        storageMode: imported.storageMode || "localStorage-json",
+        createdAt: imported.createdAt || new Date().toISOString(),
+        updatedAt: imported.updatedAt || new Date().toISOString(),
+        members: MEMBERS.slice(),
+        plans: normalizePlans(imported.plans)
+      };
+    }
+
+    function normalizePlans(plans) {
+      const result = {};
+      Object.entries(plans || {}).forEach(([year, weeks]) => {
+        result[year] = {};
+        Object.entries(weeks || {}).forEach(([weekKey, weekData]) => {
+          result[year][weekKey] = {};
+          MEMBERS.forEach((member) => {
+            const rawMember = weekData?.[member] || {};
+            result[year][weekKey][member] = createEmptyMemberData();
+            STATUS_KEYS.forEach((status) => {
+              const items = Array.isArray(rawMember[status]) ? rawMember[status] : [];
+              result[year][weekKey][member][status] = items.map(normalizeItem);
+            });
+          });
+        });
+      });
+      return result;
+    }
+
+    function normalizeItem(item) {
+      const now = new Date().toISOString();
+      const descriptions = Array.isArray(item?.descriptions) ? item.descriptions : [];
+      return {
+        id: item?.id || createId("item"),
+        title: item?.title || "Untitled item",
+        descriptions: descriptions.length ? descriptions.map(normalizeDescription) : [{ id: createId("desc"), text: "", slots: createEmptySlots() }],
+        createdAt: item?.createdAt || now,
+        updatedAt: item?.updatedAt || now
+      };
+    }
+
+    function normalizeDescription(desc) {
+      return {
+        id: desc?.id || createId("desc"),
+        text: desc?.text || "",
+        slots: normalizeSlots(desc?.slots)
+      };
+    }
+
+    function createEmptySlots() {
+      return Array.from({ length: 10 }, () => false);
+    }
+
+    function normalizeSlots(slots) {
+      const arr = Array.isArray(slots) ? slots : [];
+      return Array.from({ length: 10 }, (_, index) => Boolean(arr[index]));
+    }
+
+    function deepCopyItem(item) {
+      return JSON.parse(JSON.stringify(normalizeItem(item)));
+    }
+
+    function countCheckedSlots(item) {
+      const all = item.descriptions.flatMap((desc) => normalizeSlots(desc.slots));
+      return all.filter(Boolean).length;
+    }
+
+    function buildWorkWeeks(year) {
+      const firstDay = new Date(year, 0, 1);
+      const lastDay = new Date(year, 11, 31);
+      let start = startOfWeekMonday(firstDay);
+      const weeks = [];
+      let weekNo = 1;
+
+      while (start <= lastDay) {
+        const days = Array.from({ length: 5 }, (_, index) => addDays(start, index)).map(formatDate);
+        const key = `${year}-W${pad2(weekNo)}`;
+        weeks.push({
+          key,
+          weekNo,
+          startDate: days[0],
+          endDate: days[4],
+          days,
+          label: `week${pad2(weekNo)} ${days[0]} ~ ${days[4]}`
+        });
+        start = addDays(start, 7);
+        weekNo += 1;
+      }
+
+      return weeks;
+    }
+
+    function buildSlotLabels(week) {
+      return week.days.flatMap((date, dayIndex) => {
+        return HALF_DAY_LABELS.map((half) => ({
+          date,
+          short: `${WEEKDAY_LABELS[dayIndex]} ${half}`
+        }));
+      });
+    }
+
+    function getDefaultWeekKey(year) {
+      const today = new Date();
+      if (today.getFullYear() !== Number(year)) return weekOptions[0]?.key || "";
+      const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const match = weekOptions.find((week) => {
+        const monday = parseDate(week.startDate);
+        const sunday = addDays(monday, 6);
+        return todayOnly >= monday && todayOnly <= sunday;
+      });
+      return match?.key || weekOptions[0]?.key || "";
+    }
+
+    function getSelectedWeek() {
+      return weekOptions.find((week) => week.key === state.weekKey) || weekOptions[0];
+    }
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return createEmptyStore();
+        const parsed = JSON.parse(raw);
+        return normalizeImportedStore(parsed) || createEmptyStore();
+      } catch (error) {
+        console.warn("Failed to load local data:", error);
+        return createEmptyStore();
+      }
+    }
+
+    function persistData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataStore));
+    }
+
+    function focusMemberRow(member, scroll = true) {
+      document.querySelectorAll("tr[data-member]").forEach((row) => {
+        row.classList.toggle("focused", row.dataset.member === member);
+      });
+      const row = Array.from(document.querySelectorAll("tr[data-member]")).find((item) => item.dataset.member === member);
+      if (row && scroll) row.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function normalizeYear(value) {
+      const currentYear = new Date().getFullYear();
+      const year = Number(value);
+      if (!Number.isInteger(year)) return currentYear;
+      return Math.min(2100, Math.max(2000, year));
+    }
+
+    function startOfWeekMonday(date) {
+      const copied = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const day = copied.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      copied.setDate(copied.getDate() + diff);
+      return copied;
+    }
+
+    function addDays(date, days) {
+      const copied = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      copied.setDate(copied.getDate() + days);
+      return copied;
+    }
+
+    function parseDate(value) {
+      const [year, month, day] = value.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    function formatDate(date) {
+      const year = date.getFullYear();
+      const month = pad2(date.getMonth() + 1);
+      const day = pad2(date.getDate());
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatTimestampForFile(date) {
+      return `${date.getFullYear()}${pad2(date.getMonth() + 1)}${pad2(date.getDate())}_${pad2(date.getHours())}${pad2(date.getMinutes())}${pad2(date.getSeconds())}`;
+    }
+
+    function pad2(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function createId(prefix) {
+      return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function updateSaveStatus(prefix) {
+      const time = new Date().toLocaleTimeString();
+      els.saveStatus.textContent = `${prefix} ${time}`;
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        els.toast.classList.remove("show");
+      }, 1800);
+    }
+
+    init();
+  </script>
+</body>
+</html>
