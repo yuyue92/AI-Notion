@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>像素风贪吃蛇 / 吃豆人</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#11182b;
+      --panel-2:#182238;
+      --line:#28344f;
+      --text:#f8fafc;
+      --muted:#94a3b8;
+      --accent:#22d3ee;
+      --danger:#fb7185;
+      --success:#4ade80;
+      --yellow:#facc15;
+      --shadow:0 20px 60px rgba(0,0,0,.38);
+    }
+
+    *{box-sizing:border-box}
+
+    html,body{
+      margin:0;
+      min-height:100%;
+    }
+
+    body{
+      font-family:"Courier New","Microsoft YaHei",monospace;
+      color:var(--text);
+      background:
+        linear-gradient(rgba(34,211,238,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34,211,238,.04) 1px, transparent 1px),
+        radial-gradient(circle at top, rgba(34,211,238,.12), transparent 35%),
+        var(--bg);
+      background-size:24px 24px,24px 24px,auto,auto;
+      padding:18px;
+      image-rendering:pixelated;
+    }
+
+    button,select{font:inherit}
+
+    .app{
+      width:min(1100px,100%);
+      margin:0 auto;
+      display:grid;
+      grid-template-columns:260px minmax(320px,1fr) 260px;
+      gap:18px;
+      align-items:start;
+    }
+
+    .panel{
+      background:var(--panel);
+      border:3px solid var(--line);
+      box-shadow:var(--shadow), inset 0 0 0 2px rgba(255,255,255,.03);
+    }
+
+    .sidebar{
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .title{
+      margin:0;
+      font-size:30px;
+      line-height:1.1;
+      color:var(--accent);
+      text-shadow:3px 3px 0 #0e7490;
+    }
+
+    .subtitle{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.7;
+      margin:8px 0 0;
+    }
+
+    .section{
+      background:var(--panel-2);
+      border:2px solid var(--line);
+      padding:12px;
+    }
+
+    .section h3{
+      margin:0 0 10px;
+      font-size:14px;
+      color:var(--yellow);
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    .stat{
+      background:#0f172a;
+      border:2px solid var(--line);
+      padding:10px;
+    }
+
+    .label{
+      display:block;
+      color:var(--muted);
+      font-size:11px;
+      margin-bottom:5px;
+    }
+
+    .value{
+      font-size:22px;
+      color:var(--text);
+    }
+
+    .btn{
+      min-height:42px;
+      padding:8px 10px;
+      color:var(--text);
+      background:#1e293b;
+      border:2px solid #475569;
+      cursor:pointer;
+      box-shadow:inset -3px -3px 0 rgba(0,0,0,.22), inset 3px 3px 0 rgba(255,255,255,.04);
+    }
+
+    .btn:hover{background:#334155}
+    .btn:active{transform:translate(2px,2px)}
+    .btn.primary{background:#0e7490;border-color:#67e8f9}
+    .btn.success{background:#166534;border-color:#86efac}
+    .btn.danger{background:#9f1239;border-color:#fda4af}
+
+    .button-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    select{
+      width:100%;
+      min-height:40px;
+      color:var(--text);
+      background:#0f172a;
+      border:2px solid var(--line);
+      padding:8px;
+    }
+
+    .game-panel{
+      padding:14px;
+    }
+
+    .game-top{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+
+    .badge{
+      padding:8px 10px;
+      border:2px solid var(--line);
+      background:#0f172a;
+      color:var(--accent);
+      font-size:12px;
+    }
+
+    .canvas-wrap{
+      position:relative;
+      width:min(100%,640px);
+      margin:0 auto;
+      aspect-ratio:1;
+      background:#020617;
+      border:4px solid #475569;
+      box-shadow:inset 0 0 0 4px #0f172a;
+      overflow:hidden;
+    }
+
+    canvas{
+      display:block;
+      width:100%;
+      height:100%;
+      image-rendering:pixelated;
+      touch-action:none;
+    }
+
+    .overlay{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(2,6,23,.78);
+      z-index:10;
+    }
+
+    .overlay.hidden{display:none}
+
+    .overlay-card{
+      width:min(320px,86%);
+      padding:18px;
+      text-align:center;
+      background:#111827;
+      border:3px solid var(--accent);
+      box-shadow:8px 8px 0 rgba(0,0,0,.35);
+    }
+
+    .overlay-card h2{
+      margin:0 0 10px;
+      color:var(--yellow);
+    }
+
+    .overlay-card p{
+      color:var(--muted);
+      line-height:1.7;
+      font-size:13px;
+    }
+
+    .status{
+      min-height:22px;
+      color:var(--accent);
+      font-size:12px;
+      line-height:1.6;
+    }
+
+    .controls{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:8px;
+    }
+
+    .controls .btn{
+      min-height:54px;
+      font-size:22px;
+    }
+
+    .controls .empty{visibility:hidden}
+
+    .help{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.8;
+    }
+
+    .legend{
+      display:grid;
+      gap:8px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .legend-row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .pixel-dot,.pixel-box{
+      width:14px;
+      height:14px;
+      display:inline-block;
+      border:2px solid rgba(255,255,255,.14);
+    }
+
+    .pixel-dot{border-radius:50%}
+
+    @media(max-width:900px){
+      .app{grid-template-columns:1fr 1.3fr}
+      .right{grid-column:1/span 2}
+    }
+
+    @media(max-width:680px){
+      body{padding:10px}
+      .app{display:flex;flex-direction:column}
+      .game-panel{order:1}
+      .left{order:2}
+      .right{order:3}
+      .title{font-size:26px}
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="panel sidebar left">
+      <header>
+        <h1 class="title">PIXEL ARCADE</h1>
+        <p class="subtitle">像素风双模式小游戏：贪吃蛇与吃豆人。</p>
+      </header>
+
+      <section class="section">
+        <h3>游戏模式</h3>
+        <select id="modeSelect">
+          <option value="snake">像素贪吃蛇</option>
+          <option value="pacman">像素吃豆人</option>
+        </select>
+      </section>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="label">分数</span>
+          <strong class="value" id="scoreValue">0</strong>
+        </div>
+        <div class="stat">
+          <span class="label">最高分</span>
+          <strong class="value" id="bestValue">0</strong>
+        </div>
+        <div class="stat">
+          <span class="label">等级</span>
+          <strong class="value" id="levelValue">1</strong>
+        </div>
+        <div class="stat">
+          <span class="label">生命</span>
+          <strong class="value" id="lifeValue">1</strong>
+        </div>
+      </div>
+
+      <section class="section">
+        <h3>游戏操作</h3>
+        <div class="button-grid">
+          <button class="btn primary" id="startBtn">开始</button>
+          <button class="btn" id="pauseBtn">暂停</button>
+          <button class="btn danger" id="restartBtn">重开</button>
+          <button class="btn success" id="soundBtn">音效：开</button>
+        </div>
+      </section>
+
+      <div class="status" id="status">请选择模式并开始游戏。</div>
+    </aside>
+
+    <section class="panel game-panel">
+      <div class="game-top">
+        <div class="badge" id="modeBadge">模式：像素贪吃蛇</div>
+        <div class="badge" id="missionBadge">目标：尽可能长</div>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="640" height="640"></canvas>
+
+        <div class="overlay" id="overlay">
+          <div class="overlay-card">
+            <h2 id="overlayTitle">准备开始</h2>
+            <p id="overlayText">使用方向键、WASD 或下方按钮移动。</p>
+            <button class="btn primary" id="overlayBtn">开始游戏</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel sidebar right">
+      <section class="section">
+        <h3>方向控制</h3>
+        <div class="controls">
+          <span class="empty"></span>
+          <button class="btn" data-dir="up">▲</button>
+          <span class="empty"></span>
+          <button class="btn" data-dir="left">◀</button>
+          <button class="btn" data-dir="down">▼</button>
+          <button class="btn" data-dir="right">▶</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h3>玩法说明</h3>
+        <div class="help" id="helpText">
+          贪吃蛇：吃掉像素果实增长，避免撞墙和撞到自己。
+        </div>
+      </section>
+
+      <section class="section">
+        <h3>图例</h3>
+        <div class="legend" id="legend"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    "use strict";
+
+    /* =========================================================
+       1. 基础配置
+       ========================================================= */
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const UI = {
+      modeSelect: document.getElementById("modeSelect"),
+      scoreValue: document.getElementById("scoreValue"),
+      bestValue: document.getElementById("bestValue"),
+      levelValue: document.getElementById("levelValue"),
+      lifeValue: document.getElementById("lifeValue"),
+      startBtn: document.getElementById("startBtn"),
+      pauseBtn: document.getElementById("pauseBtn"),
+      restartBtn: document.getElementById("restartBtn"),
+      soundBtn: document.getElementById("soundBtn"),
+      status: document.getElementById("status"),
+      modeBadge: document.getElementById("modeBadge"),
+      missionBadge: document.getElementById("missionBadge"),
+      helpText: document.getElementById("helpText"),
+      legend: document.getElementById("legend"),
+      overlay: document.getElementById("overlay"),
+      overlayTitle: document.getElementById("overlayTitle"),
+      overlayText: document.getElementById("overlayText"),
+      overlayBtn: document.getElementById("overlayBtn")
+    };
+
+    const STORAGE = {
+      SNAKE_BEST: "pixel_arcade_snake_best",
+      PACMAN_BEST: "pixel_arcade_pacman_best",
+      SOUND: "pixel_arcade_sound"
+    };
+
+    const DIRS = {
+      up: { x: 0, y: -1 },
+      down: { x: 0, y: 1 },
+      left: { x: -1, y: 0 },
+      right: { x: 1, y: 0 }
+    };
+
+    let mode = "snake";
+    let running = false;
+    let paused = false;
+    let gameOver = false;
+    let score = 0;
+    let level = 1;
+    let lives = 1;
+    let soundEnabled = localStorage.getItem(STORAGE.SOUND) !== "off";
+    let audioContext = null;
+    let lastTime = 0;
+    let accumulator = 0;
+    let rafId = null;
+
+    /* =========================================================
+       2. 贪吃蛇状态
+       ========================================================= */
+    const SNAKE = {
+      cols: 24,
+      rows: 24,
+      body: [],
+      dir: DIRS.right,
+      nextDir: DIRS.right,
+      food: { x: 10, y: 10 },
+      tick: 125
+    };
+
+    /* =========================================================
+       3. 吃豆人地图与状态
+       0=空地 1=墙 2=豆子 3=能量豆
+       ========================================================= */
+    const PAC_MAP_TEMPLATE = [
+      "1111111111111111111",
+      "1322222221222222231",
+      "1211122212122211121",
+      "1222222222222222221",
+      "1212121111111212121",
+      "1222122221222221221",
+      "1112121110111212111",
+      "0002121000001212000",
+      "1112121011101212111",
+      "1222221000001222221",
+      "1211121111111211121",
+      "1221222221222221221",
+      "1121211112111121211",
+      "1222222222222222221",
+      "1211111212121111121",
+      "1322222212122222231",
+      "1111111111111111111"
+    ];
+
+    const PAC = {
+      cols: 19,
+      rows: 17,
+      map: [],
+      player: { x: 9, y: 13, dir: DIRS.left, nextDir: DIRS.left },
+      ghosts: [],
+      powered: 0,
+      tick: 150,
+      ghostTick: 220,
+      ghostAccumulator: 0,
+      pellets: 0
+    };
+
+    /* =========================================================
+       4. 初始化
+       ========================================================= */
+    function initGame() {
+      cancelAnimationFrame(rafId);
+      running = false;
+      paused = false;
+      gameOver = false;
+      score = 0;
+      level = 1;
+      accumulator = 0;
+      lastTime = performance.now();
+
+      if (mode === "snake") {
+        initSnake();
+      } else {
+        initPacman();
+      }
+
+      updateUI();
+      draw();
+    }
+
+    function initSnake() {
+      lives = 1;
+      SNAKE.body = [
+        { x: 8, y: 12 },
+        { x: 7, y: 12 },
+        { x: 6, y: 12 }
+      ];
+      SNAKE.dir = DIRS.right;
+      SNAKE.nextDir = DIRS.right;
+      SNAKE.tick = 125;
+      placeSnakeFood();
+      UI.helpText.textContent = "贪吃蛇：吃掉像素果实增长，避免撞墙和撞到自己。";
+      UI.missionBadge.textContent = "目标：尽可能长";
+      renderLegend([
+        ["#4ade80","蛇身"],
+        ["#22d3ee","蛇头"],
+        ["#fb7185","果实"]
+      ]);
+    }
+
+    function initPacman() {
+      lives = 3;
+      PAC.map = PAC_MAP_TEMPLATE.map(row => row.split("").map(Number));
+      PAC.player = { x: 9, y: 13, dir: DIRS.left, nextDir: DIRS.left };
+      PAC.ghosts = [
+        { x: 8, y: 9, color: "#fb7185", dir: DIRS.left },
+        { x: 9, y: 9, color: "#f472b6", dir: DIRS.right },
+        { x: 10, y: 9, color: "#22d3ee", dir: DIRS.up }
+      ];
+      PAC.powered = 0;
+      PAC.tick = 150;
+      PAC.ghostTick = 220;
+      PAC.ghostAccumulator = 0;
+      PAC.pellets = PAC.map.flat().filter(v => v === 2 || v === 3).length;
+      UI.helpText.textContent = "吃豆人：吃完所有豆子，避开幽灵；能量豆可暂时反吃幽灵。";
+      UI.missionBadge.textContent = `目标：清空 ${PAC.pellets} 个豆子`;
+      renderLegend([
+        ["#facc15","吃豆人"],
+        ["#f8fafc","普通豆"],
+        ["#c084fc","能量豆"],
+        ["#fb7185","幽灵"]
+      ]);
+    }
+
+    function startGame() {
+      if (gameOver) initGame();
+      running = true;
+      paused = false;
+      UI.overlay.classList.add("hidden");
+      UI.pauseBtn.textContent = "暂停";
+      UI.status.textContent = "游戏进行中。";
+      lastTime = performance.now();
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function togglePause() {
+      if (!running || gameOver) return;
+      paused = !paused;
+
+      if (paused) {
+        UI.pauseBtn.textContent = "继续";
+        showOverlay("游戏暂停", "点击继续或按 P 恢复游戏。", "继续");
+      } else {
+        UI.pauseBtn.textContent = "暂停";
+        UI.overlay.classList.add("hidden");
+        lastTime = performance.now();
+        rafId = requestAnimationFrame(loop);
+      }
+    }
+
+    function finishGame(message) {
+      gameOver = true;
+      running = false;
+      paused = false;
+      cancelAnimationFrame(rafId);
+      saveBest();
+      playSound("gameover");
+      showOverlay("游戏结束", `${message} 最终得分：${score}`, "重新开始");
+      UI.status.textContent = message;
+      updateUI();
+    }
+
+    /* =========================================================
+       5. 主循环
+       ========================================================= */
+    function loop(time) {
+      if (!running || paused || gameOver) return;
+
+      const delta = Math.min(time - lastTime, 100);
+      lastTime = time;
+      accumulator += delta;
+
+      if (mode === "snake") {
+        if (accumulator >= SNAKE.tick) {
+          accumulator = 0;
+          updateSnake();
+        }
+      } else {
+        if (accumulator >= PAC.tick) {
+          accumulator = 0;
+          updatePacman();
+        }
+
+        PAC.ghostAccumulator += delta;
+        if (PAC.ghostAccumulator >= PAC.ghostTick) {
+          PAC.ghostAccumulator = 0;
+          updateGhosts();
+          checkPacCollision();
+        }
+
+        if (PAC.powered > 0) PAC.powered -= delta;
+      }
+
+      draw();
+      rafId = requestAnimationFrame(loop);
+    }
+
+    /* =========================================================
+       6. 贪吃蛇逻辑
+       ========================================================= */
+    function updateSnake() {
+      SNAKE.dir = SNAKE.nextDir;
+      const head = SNAKE.body[0];
+      const next = {
+        x: head.x + SNAKE.dir.x,
+        y: head.y + SNAKE.dir.y
+      };
+
+      const hitWall =
+        next.x < 0 || next.x >= SNAKE.cols ||
+        next.y < 0 || next.y >= SNAKE.rows;
+
+      const hitSelf = SNAKE.body.some(part => part.x === next.x && part.y === next.y);
+
+      if (hitWall || hitSelf) {
+        finishGame(hitWall ? "撞到墙壁。" : "撞到自己。");
+        return;
+      }
+
+      SNAKE.body.unshift(next);
+
+      if (next.x === SNAKE.food.x && next.y === SNAKE.food.y) {
+        score += 10 * level;
+        level = Math.floor((SNAKE.body.length - 3) / 5) + 1;
+        SNAKE.tick = Math.max(60, 125 - (level - 1) * 8);
+        playSound("eat");
+        placeSnakeFood();
+      } else {
+        SNAKE.body.pop();
+      }
+
+      updateUI();
+    }
+
+    function placeSnakeFood() {
+      const empty = [];
+
+      for (let y = 0; y < SNAKE.rows; y++) {
+        for (let x = 0; x < SNAKE.cols; x++) {
+          if (!SNAKE.body.some(part => part.x === x && part.y === y)) {
+            empty.push({ x, y });
+          }
+        }
+      }
+
+      SNAKE.food = empty[Math.floor(Math.random() * empty.length)] || { x: 0, y: 0 };
+    }
+
+    /* =========================================================
+       7. 吃豆人逻辑
+       ========================================================= */
+    function updatePacman() {
+      tryPacMove(PAC.player.nextDir);
+      if (!tryPacMove(PAC.player.dir)) {
+        // 保持原地
+      }
+
+      const cell = PAC.map[PAC.player.y][PAC.player.x];
+
+      if (cell === 2) {
+        PAC.map[PAC.player.y][PAC.player.x] = 0;
+        score += 10;
+        PAC.pellets -= 1;
+        playSound("pellet");
+      } else if (cell === 3) {
+        PAC.map[PAC.player.y][PAC.player.x] = 0;
+        score += 50;
+        PAC.pellets -= 1;
+        PAC.powered = 7000;
+        playSound("power");
+      }
+
+      if (PAC.pellets <= 0) {
+        score += 1000;
+        level += 1;
+        playSound("win");
+        showOverlay("关卡完成", `本关得分 ${score}，点击进入下一关。`, "下一关");
+        running = false;
+        UI.overlayBtn.onclick = () => {
+          initPacman();
+          startGame();
+        };
+        return;
+      }
+
+      level = Math.max(1, Math.floor(score / 500) + 1);
+      PAC.tick = Math.max(95, 150 - (level - 1) * 6);
+      PAC.ghostTick = Math.max(120, 220 - (level - 1) * 10);
+
+      checkPacCollision();
+      updateUI();
+    }
+
+    function tryPacMove(dir) {
+      const nx = PAC.player.x + dir.x;
+      const ny = PAC.player.y + dir.y;
+
+      if (!isPacWalkable(nx, ny)) return false;
+
+      PAC.player.x = nx;
+      PAC.player.y = ny;
+      PAC.player.dir = dir;
+      return true;
+    }
+
+    function isPacWalkable(x, y) {
+      if (x < 0 || y < 0 || x >= PAC.cols || y >= PAC.rows) return false;
+      return PAC.map[y][x] !== 1;
+    }
+
+    function updateGhosts() {
+      for (const ghost of PAC.ghosts) {
+        const options = Object.values(DIRS).filter(dir => {
+          const nx = ghost.x + dir.x;
+          const ny = ghost.y + dir.y;
+          return isPacWalkable(nx, ny);
+        });
+
+        if (!options.length) continue;
+
+        let chosen;
+
+        if (PAC.powered > 0) {
+          chosen = options.sort((a, b) => {
+            const da = distance(ghost.x + a.x, ghost.y + a.y, PAC.player.x, PAC.player.y);
+            const db = distance(ghost.x + b.x, ghost.y + b.y, PAC.player.x, PAC.player.y);
+            return db - da;
+          })[0];
+        } else if (Math.random() < 0.72) {
+          chosen = options.sort((a, b) => {
+            const da = distance(ghost.x + a.x, ghost.y + a.y, PAC.player.x, PAC.player.y);
+            const db = distance(ghost.x + b.x, ghost.y + b.y, PAC.player.x, PAC.player.y);
+            return da - db;
+          })[0];
+        } else {
+          chosen = options[Math.floor(Math.random() * options.length)];
+        }
+
+        ghost.x += chosen.x;
+        ghost.y += chosen.y;
+        ghost.dir = chosen;
+      }
+    }
+
+    function checkPacCollision() {
+      for (const ghost of PAC.ghosts) {
+        if (ghost.x === PAC.player.x && ghost.y === PAC.player.y) {
+          if (PAC.powered > 0) {
+            score += 200;
+            ghost.x = 9;
+            ghost.y = 9;
+            playSound("eatGhost");
+          } else {
+            lives -= 1;
+            playSound("hurt");
+
+            if (lives <= 0) {
+              finishGame("被幽灵抓住。");
+              return;
+            }
+
+            PAC.player.x = 9;
+            PAC.player.y = 13;
+            PAC.player.dir = DIRS.left;
+            PAC.player.nextDir = DIRS.left;
+
+            PAC.ghosts[0].x = 8; PAC.ghosts[0].y = 9;
+            PAC.ghosts[1].x = 9; PAC.ghosts[1].y = 9;
+            PAC.ghosts[2].x = 10; PAC.ghosts[2].y = 9;
+            UI.status.textContent = `失去一条生命，还剩 ${lives} 条。`;
+          }
+        }
+      }
+    }
+
+    function distance(x1, y1, x2, y2) {
+      return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+    }
+
+    /* =========================================================
+       8. 绘制
+       ========================================================= */
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#020617";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (mode === "snake") drawSnake();
+      else drawPacman();
+    }
+
+    function drawSnake() {
+      const cell = canvas.width / SNAKE.cols;
+
+      ctx.strokeStyle = "rgba(34,211,238,.08)";
+      ctx.lineWidth = 1;
+
+      for (let i = 0; i <= SNAKE.cols; i++) {
+        const p = Math.floor(i * cell) + .5;
+        ctx.beginPath();
+        ctx.moveTo(p, 0);
+        ctx.lineTo(p, canvas.height);
+        ctx.stroke();
+      }
+
+      for (let i = 0; i <= SNAKE.rows; i++) {
+        const p = Math.floor(i * cell) + .5;
+        ctx.beginPath();
+        ctx.moveTo(0, p);
+        ctx.lineTo(canvas.width, p);
+        ctx.stroke();
+      }
+
+      drawPixelCell(SNAKE.food.x, SNAKE.food.y, cell, "#fb7185", 5);
+
+      SNAKE.body.forEach((part, index) => {
+        drawPixelCell(
+          part.x,
+          part.y,
+          cell,
+          index === 0 ? "#22d3ee" : "#4ade80",
+          index === 0 ? 3 : 4
+        );
+      });
+
+      const head = SNAKE.body[0];
+      if (head) {
+        ctx.fillStyle = "#020617";
+        const eye = cell * .12;
+        ctx.fillRect(head.x * cell + cell * .28, head.y * cell + cell * .26, eye, eye);
+        ctx.fillRect(head.x * cell + cell * .62, head.y * cell + cell * .26, eye, eye);
+      }
+    }
+
+    function drawPacman() {
+      const cell = Math.min(canvas.width / PAC.cols, canvas.height / PAC.rows);
+      const offsetX = (canvas.width - PAC.cols * cell) / 2;
+      const offsetY = (canvas.height - PAC.rows * cell) / 2;
+
+      PAC.map.forEach((row, y) => {
+        row.forEach((value, x) => {
+          const px = offsetX + x * cell;
+          const py = offsetY + y * cell;
+
+          if (value === 1) {
+            ctx.fillStyle = "#1d4ed8";
+            ctx.fillRect(px + 1, py + 1, cell - 2, cell - 2);
+            ctx.fillStyle = "#60a5fa";
+            ctx.fillRect(px + 4, py + 4, cell - 8, 3);
+          } else if (value === 2) {
+            ctx.fillStyle = "#f8fafc";
+            const s = Math.max(3, cell * .14);
+            ctx.fillRect(px + cell/2 - s/2, py + cell/2 - s/2, s, s);
+          } else if (value === 3) {
+            ctx.fillStyle = "#c084fc";
+            ctx.beginPath();
+            ctx.arc(px + cell/2, py + cell/2, cell * .18, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+      });
+
+      const ppX = offsetX + PAC.player.x * cell + cell / 2;
+      const ppY = offsetY + PAC.player.y * cell + cell / 2;
+      const angle = getPacAngle(PAC.player.dir);
+      const mouth = .32;
+
+      ctx.fillStyle = "#facc15";
+      ctx.beginPath();
+      ctx.moveTo(ppX, ppY);
+      ctx.arc(ppX, ppY, cell * .38, angle + mouth, angle + Math.PI * 2 - mouth);
+      ctx.closePath();
+      ctx.fill();
+
+      PAC.ghosts.forEach(ghost => {
+        drawGhost(
+          offsetX + ghost.x * cell,
+          offsetY + ghost.y * cell,
+          cell,
+          PAC.powered > 0 ? "#312e81" : ghost.color
+        );
+      });
+    }
+
+    function drawGhost(x, y, cell, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x + cell/2, y + cell*.45, cell*.32, Math.PI, 0);
+      ctx.lineTo(x + cell*.82, y + cell*.82);
+      ctx.lineTo(x + cell*.68, y + cell*.72);
+      ctx.lineTo(x + cell*.54, y + cell*.82);
+      ctx.lineTo(x + cell*.40, y + cell*.72);
+      ctx.lineTo(x + cell*.18, y + cell*.82);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(x + cell*.30, y + cell*.36, cell*.14, cell*.16);
+      ctx.fillRect(x + cell*.56, y + cell*.36, cell*.14, cell*.16);
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(x + cell*.35, y + cell*.40, cell*.06, cell*.08);
+      ctx.fillRect(x + cell*.61, y + cell*.40, cell*.06, cell*.08);
+    }
+
+    function drawPixelCell(x, y, cell, color, pad) {
+      ctx.fillStyle = color;
+      ctx.fillRect(
+        x * cell + pad,
+        y * cell + pad,
+        cell - pad * 2,
+        cell - pad * 2
+      );
+    }
+
+    function getPacAngle(dir) {
+      if (dir === DIRS.right) return 0;
+      if (dir === DIRS.down) return Math.PI / 2;
+      if (dir === DIRS.left) return Math.PI;
+      return -Math.PI / 2;
+    }
+
+    /* =========================================================
+       9. 输入
+       ========================================================= */
+    function setDirection(name) {
+      const dir = DIRS[name];
+      if (!dir) return;
+
+      if (mode === "snake") {
+        const opposite =
+          SNAKE.dir.x + dir.x === 0 &&
+          SNAKE.dir.y + dir.y === 0;
+
+        if (!opposite) SNAKE.nextDir = dir;
+      } else {
+        PAC.player.nextDir = dir;
+      }
+    }
+
+    document.addEventListener("keydown", event => {
+      const map = {
+        ArrowUp:"up", KeyW:"up",
+        ArrowDown:"down", KeyS:"down",
+        ArrowLeft:"left", KeyA:"left",
+        ArrowRight:"right", KeyD:"right"
+      };
+
+      if (map[event.code]) {
+        event.preventDefault();
+        setDirection(map[event.code]);
+      } else if (event.code === "KeyP") {
+        event.preventDefault();
+        togglePause();
+      } else if (event.code === "Enter") {
+        event.preventDefault();
+        startGame();
+      }
+    });
+
+    document.querySelectorAll("[data-dir]").forEach(button => {
+      button.addEventListener("pointerdown", event => {
+        event.preventDefault();
+        setDirection(button.dataset.dir);
+      });
+    });
+
+    let touchStart = null;
+
+    canvas.addEventListener("pointerdown", event => {
+      touchStart = { x:event.clientX, y:event.clientY };
+    });
+
+    canvas.addEventListener("pointerup", event => {
+      if (!touchStart) return;
+
+      const dx = event.clientX - touchStart.x;
+      const dy = event.clientY - touchStart.y;
+      touchStart = null;
+
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 20) return;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        setDirection(dx > 0 ? "right" : "left");
+      } else {
+        setDirection(dy > 0 ? "down" : "up");
+      }
+    });
+
+    UI.modeSelect.addEventListener("change", event => {
+      mode = event.target.value;
+      initGame();
+      showOverlay(
+        mode === "snake" ? "像素贪吃蛇" : "像素吃豆人",
+        mode === "snake"
+          ? "吃掉果实、持续成长，避免撞墙与撞到自己。"
+          : "吃完所有豆子，避开幽灵，能量豆可反吃幽灵。",
+        "开始游戏"
+      );
+    });
+
+    UI.startBtn.addEventListener("click", startGame);
+    UI.restartBtn.addEventListener("click", () => {
+      initGame();
+      startGame();
+    });
+    UI.pauseBtn.addEventListener("click", togglePause);
+    UI.overlayBtn.addEventListener("click", () => {
+      if (paused) togglePause();
+      else startGame();
+    });
+
+    UI.soundBtn.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      localStorage.setItem(STORAGE.SOUND, soundEnabled ? "on" : "off");
+      UI.soundBtn.textContent = `音效：${soundEnabled ? "开" : "关"}`;
+      if (soundEnabled) playSound("eat");
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && running && !paused && !gameOver) togglePause();
+    });
+
+    /* =========================================================
+       10. 音效
+       ========================================================= */
+    function ensureAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === "suspended") audioContext.resume();
+    }
+
+    function tone(freq, duration, type="square", volume=.035, delay=0) {
+      if (!soundEnabled) return;
+      ensureAudio();
+
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.value = volume;
+
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+
+      const start = audioContext.currentTime + delay;
+      gain.gain.setValueAtTime(volume, start);
+      gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
+      osc.start(start);
+      osc.stop(start + duration);
+    }
+
+    function playSound(kind) {
+      switch(kind) {
+        case "eat": tone(440,.08,"square",.03); tone(660,.10,"square",.025,.04); break;
+        case "pellet": tone(320,.04,"square",.018); break;
+        case "power": tone(380,.08,"square",.03); tone(520,.12,"triangle",.03,.05); break;
+        case "eatGhost": tone(650,.09,"square",.03); tone(900,.12,"square",.03,.05); break;
+        case "hurt": tone(170,.16,"sawtooth",.03); break;
+        case "win": tone(523,.12,"square",.03); tone(659,.14,"square",.03,.08); tone(784,.18,"square",.03,.16); break;
+        case "gameover": tone(200,.20,"sawtooth",.03); tone(120,.28,"sawtooth",.03,.16); break;
+      }
+    }
+
+    /* =========================================================
+       11. UI 与存储
+       ========================================================= */
+    function updateUI() {
+      const best = Number(localStorage.getItem(
+        mode === "snake" ? STORAGE.SNAKE_BEST : STORAGE.PACMAN_BEST
+      )) || 0;
+
+      UI.scoreValue.textContent = score;
+      UI.bestValue.textContent = Math.max(best, score);
+      UI.levelValue.textContent = level;
+      UI.lifeValue.textContent = lives;
+      UI.modeBadge.textContent = `模式：${mode === "snake" ? "像素贪吃蛇" : "像素吃豆人"}`;
+      UI.soundBtn.textContent = `音效：${soundEnabled ? "开" : "关"}`;
+
+      if (mode === "pacman") {
+        UI.missionBadge.textContent = `剩余豆子：${PAC.pellets}`;
+      }
+    }
+
+    function saveBest() {
+      const key = mode === "snake" ? STORAGE.SNAKE_BEST : STORAGE.PACMAN_BEST;
+      const old = Number(localStorage.getItem(key)) || 0;
+      if (score > old) localStorage.setItem(key, String(score));
+    }
+
+    function showOverlay(title, text, buttonText) {
+      UI.overlayTitle.textContent = title;
+      UI.overlayText.textContent = text;
+      UI.overlayBtn.textContent = buttonText;
+      UI.overlay.classList.remove("hidden");
+    }
+
+    function renderLegend(items) {
+      UI.legend.innerHTML = "";
+      items.forEach(([color, label]) => {
+        const row = document.createElement("div");
+        row.className = "legend-row";
+        row.innerHTML = `<span class="pixel-box" style="background:${color}"></span><span>${label}</span>`;
+        UI.legend.appendChild(row);
+      });
+    }
+
+    /* =========================================================
+       12. 内置自检
+       ========================================================= */
+    function runSelfCheck() {
+      const checks = [
+        ["方向配置", Object.keys(DIRS).length === 4],
+        ["贪吃蛇地图", SNAKE.cols === 24 && SNAKE.rows === 24],
+        ["吃豆人地图", PAC_MAP_TEMPLATE.length === 17 && PAC_MAP_TEMPLATE.every(r => r.length === 19)],
+        ["Canvas 尺寸", canvas.width === 640 && canvas.height === 640]
+      ];
+
+      const failed = checks.filter(([,ok]) => !ok);
+
+      if (failed.length) {
+        console.error("[像素街机自检失败]", failed);
+        UI.status.textContent = "检测到初始化异常，请查看控制台。";
+      } else {
+        console.info("[像素街机自检通过]", checks.map(([name]) => name).join("、"));
+      }
+    }
+
+    initGame();
+    runSelfCheck();
+  </script>
+</body>
+</html>
