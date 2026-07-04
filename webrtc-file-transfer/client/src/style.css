@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  /* ---- 协议工程 / 示波器风格 token ---- */
+  --bg: #14171a;
+  --panel: #1c2024;
+  --panel-raised: #22262b;
+  --border: #2a2f35;
+  --border-soft: #23272c;
+
+  --signal: #5eead4;       /* 主信号色：磷光青绿，代表"数据在流动" */
+  --signal-dim: #2f6e64;
+  --warn: #f5a623;         /* 重传 / NACK */
+  --danger: #f0665e;       /* 连接失败 */
+  --ok: #7ee787;
+
+  --text: #e7ecef;
+  --text-muted: #8a94a0;
+  --text-faint: #565e68;
+
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --sans: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  --radius: 3px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+::selection { background: var(--signal-dim); color: #fff; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+button {
+  font-family: var(--sans);
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}

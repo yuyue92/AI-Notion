@@ -1,0 +1,15 @@
+{
+  "name": "webrtc-signaling-server",
+  "version": "1.0.0",
+  "description": "基于 Socket.io 的 WebRTC 信令服务器，仅负责 SDP / ICE Candidate 转发，不接触任何文件数据",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
