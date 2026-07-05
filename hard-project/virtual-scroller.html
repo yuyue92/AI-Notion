@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VirtualScroller · 百万级无DOM依赖虚拟滚动</title>
+<style>
+  :root{
+    --bg: #0d1210;
+    --panel: #131a17;
+    --line: #223028;
+    --text: #d7e4dd;
+    --dim: #7c9186;
+    --accent: #ffb648;
+    --accent-dim: #8a6a33;
+    --mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--mono);}
+  body{display:flex;flex-direction:column;padding:20px;gap:14px;}
+
+  .header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;}
+  .title{font-size:15px;letter-spacing:.04em;color:var(--text);}
+  .title b{color:var(--accent);font-weight:600;}
+  .subtitle{font-size:11.5px;color:var(--dim);margin-top:4px;line-height:1.6;}
+
+  .stats{
+    display:grid;grid-template-columns:repeat(6,minmax(90px,1fr));gap:1px;
+    background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:11px;
+  }
+  .stat{background:var(--panel);padding:8px 10px;}
+  .stat .k{color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.06em;}
+  .stat .v{color:var(--accent);font-size:14px;margin-top:2px;font-variant-numeric:tabular-nums;}
+
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;}
+  .controls input{
+    background:var(--panel);border:1px solid var(--line);color:var(--text);
+    padding:6px 8px;border-radius:4px;font-family:var(--mono);width:120px;
+  }
+  .controls button{
+    background:var(--panel);border:1px solid var(--line);color:var(--text);
+    padding:6px 12px;border-radius:4px;font-family:var(--mono);cursor:pointer;font-size:12px;
+    transition:border-color .12s, color .12s;
+  }
+  .controls button:hover{border-color:var(--accent-dim);color:var(--accent);}
+  .controls .sep{width:1px;height:18px;background:var(--line);margin:0 4px;}
+
+  #scroll-container{
+    position:relative;
+    flex:1;
+    min-height:0;
+    border:1px solid var(--line);
+    border-radius:6px;
+    background:var(--panel);
+    overflow-y:auto;
+    overflow-anchor:none;
+  }
+  /* 滚动条视觉：不影响功能，纯装饰 */
+  #scroll-container::-webkit-scrollbar{width:10px;}
+  #scroll-container::-webkit-scrollbar-track{background:var(--panel);}
+  #scroll-container::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px;}
+  #scroll-container::-webkit-scrollbar-thumb:hover{background:var(--accent-dim);}
+
+  .row{
+    display:flex;
+    gap:12px;
+    padding:10px 14px;
+    border-bottom:1px solid var(--line);
+    align-items:flex-start;
+  }
+  .row .idx{
+    flex:0 0 64px;
+    color:var(--accent-dim);
+    font-size:11px;
+    padding-top:2px;
+    font-variant-numeric:tabular-nums;
+  }
+  .row .body{flex:1;font-size:12.5px;line-height:1.65;color:var(--text);}
+  .row .body .tag{color:var(--accent);margin-right:6px;}
+  .row.measured-tall{background:rgba(255,182,72,0.03);}
+
+  .footer{font-size:10.5px;color:var(--dim);}
+  .footer b{color:var(--dim);}
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="title">VirtualScroller — <b>无 DOM 依赖</b>虚拟滚动引擎</div>
+      <div class="subtitle">
+        核心算法(Fenwick 树 + 方向预测)零 DOM 依赖，纯数学计算 · 渲染层仅用 <b style="color:var(--accent)">transform: translateY</b> 驱动整批偏移，不逐行设置 top<br>
+        100万行 · 动态行高(内容决定，测量后写入缓存) · 上下缓冲 5 行起 + 滚动速度预测缓冲
+      </div>
+    </div>
+    <div class="controls">
+      <input id="jump-input" type="number" placeholder="行号 0-999999" min="0" max="999999">
+      <button id="jump-btn">scrollTo(index)</button>
+      <div class="sep"></div>
+      <button data-jump="0">首行</button>
+      <button data-jump="500000">中间</button>
+      <button data-jump="999999">末行</button>
+      <button data-jump="random">随机</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stat"><div class="k">Rendered DOM</div><div class="v" id="s-rendered">0</div></div>
+    <div class="stat"><div class="k">Visible Range</div><div class="v" id="s-range">0 - 0</div></div>
+    <div class="stat"><div class="k">Buffer(上/下)</div><div class="v" id="s-buffer">5 / 5</div></div>
+    <div class="stat"><div class="k">Direction</div><div class="v" id="s-dir">-</div></div>
+    <div class="stat"><div class="k">Velocity</div><div class="v" id="s-velocity">0 px/ms</div></div>
+    <div class="stat"><div class="k">Total Height</div><div class="v" id="s-total">0 px</div></div>
+  </div>
+
+  <div id="scroll-container"></div>
+
+  <div class="footer">
+    scrollTop 仅在初次挂载滚动容器(overflow:auto)与程序化 <b>scrollTo()</b> 同步原生滚动条位置时被写入；
+    所有行的可视定位完全由 <b>getVisibleRange()</b> 计算出的单次 translateY 决定，不做逐行 top 赋值。
+  </div>
+
+<script>
+'use strict';
+
+/* =========================================================================
+ * PART 1 — 无 DOM 依赖的核心算法
+ * FenwickTree + VirtualScroller 内部完全不出现 window / document / DOM API
+ * ========================================================================= */
+
+class FenwickTree {
+  constructor(n, defaultValue) {
+    this.n = n;
+    this.tree = new Float64Array(n + 1);
+    for (let i = 1; i <= n; i++) {
+      this.tree[i] += defaultValue;
+      const parent = i + (i & -i);
+      if (parent <= n) this.tree[parent] += this.tree[i];
+    }
+  }
+  update(index, delta) {
+    for (let i = index + 1; i <= this.n; i += i & -i) this.tree[i] += delta;
+  }
+  prefixSum(k) {
+    let sum = 0;
+    for (let i = k; i > 0; i -= i & -i) sum += this.tree[i];
+    return sum;
+  }
+  total() { return this.prefixSum(this.n); }
+  // 给定像素位置 target，二进制倍增 O(log n) 定位所在行(0-based)
+  findByPrefix(target) {
+    let pos = 0, remaining = target;
+    const highestBit = 1 << (32 - Math.clz32(this.n));
+    for (let pw = highestBit; pw > 0; pw >>= 1) {
+      const next = pos + pw;
+      if (next <= this.n && this.tree[next] <= remaining) {
+        pos = next;
+        remaining -= this.tree[next];
+      }
+    }
+    return Math.min(pos, this.n - 1);
+  }
+}
+
+class VirtualScroller {
+  constructor({ totalCount, estimatedRowHeight = 48, bufferSize = 5 }) {
+    this.totalCount = totalCount;
+    this.estimatedRowHeight = estimatedRowHeight;
+    this.bufferSize = bufferSize;
+    this.heightTree = new FenwickTree(totalCount, estimatedRowHeight);
+    this.measuredHeights = new Map();
+    this._lastScrollTop = 0;
+    this._lastTime = 0;
+    this._velocity = 0;
+    this._direction = 'down';
+  }
+  getRowHeight(index) {
+    return this.measuredHeights.has(index) ? this.measuredHeights.get(index) : this.estimatedRowHeight;
+  }
+  setRowHeight(index, height) {
+    if (index < 0 || index >= this.totalCount) return false;
+    const prev = this.getRowHeight(index);
+    if (Math.abs(prev - height) < 0.5) return false;
+    this.heightTree.update(index, height - prev);
+    this.measuredHeights.set(index, height);
+    return true;
+  }
+  getOffsetTop(index) {
+    index = Math.max(0, Math.min(index, this.totalCount));
+    return this.heightTree.prefixSum(index);
+  }
+  getTotalHeight() { return this.heightTree.total(); }
+
+  updateScrollMotion(scrollTop, now) {
+    now = now || 0;
+    const dt = Math.max(1, now - this._lastTime);
+    const dy = scrollTop - this._lastScrollTop;
+    const instVelocity = dy / dt;
+    this._velocity = this._velocity * 0.7 + instVelocity * 0.3; // 指数平滑，抗抖动
+    if (Math.abs(dy) > 0.5) this._direction = dy > 0 ? 'down' : 'up';
+    this._lastScrollTop = scrollTop;
+    this._lastTime = now;
+    return { velocity: this._velocity, direction: this._direction };
+  }
+
+  getVisibleRange(scrollTop, viewportHeight) {
+    const maxScrollTop = Math.max(0, this.getTotalHeight() - viewportHeight);
+    scrollTop = Math.max(0, Math.min(scrollTop, maxScrollTop));
+
+    const firstVisible = this.heightTree.findByPrefix(scrollTop);
+    const lastVisible = this.heightTree.findByPrefix(Math.max(scrollTop, scrollTop + viewportHeight - 1));
+
+    const speed = Math.abs(this._velocity);
+    const predictiveExtra = Math.min(20, Math.round(speed * 3)); // 快速滑动时最多再多渲染20行
+
+    let bufferTop = this.bufferSize, bufferBottom = this.bufferSize;
+    if (this._direction === 'down') bufferBottom += predictiveExtra;
+    else bufferTop += predictiveExtra;
+
+    const start = Math.max(0, firstVisible - bufferTop);
+    const end = Math.min(this.totalCount - 1, lastVisible + bufferBottom);
+
+    return {
+      start, end, firstVisible, lastVisible,
+      bufferTop, bufferBottom,
+      offsetTop: this.getOffsetTop(start),
+    };
+  }
+
+  calculateScrollTop(index, { align = 'top', viewportHeight = 0 } = {}) {
+    index = Math.max(0, Math.min(index, this.totalCount - 1));
+    const rowTop = this.getOffsetTop(index);
+    const rowHeight = this.getRowHeight(index);
+    let target;
+    if (align === 'center') target = rowTop - viewportHeight / 2 + rowHeight / 2;
+    else if (align === 'bottom') target = rowTop + rowHeight - viewportHeight;
+    else target = rowTop;
+    const maxScrollTop = Math.max(0, this.getTotalHeight() - viewportHeight);
+    return Math.max(0, Math.min(target, maxScrollTop));
+  }
+}
+
+/* =========================================================================
+ * PART 2 — DOM 渲染适配层
+ * 唯一涉及 DOM 的部分。整批渲染只做一次 translateY，节点按 index 复用回收池。
+ * ========================================================================= */
+
+class VirtualScrollerView {
+  constructor({ container, totalCount, estimatedRowHeight, bufferSize, renderRow }) {
+    this.container = container;
+    this.renderRow = renderRow;
+    this.core = new VirtualScroller({ totalCount, estimatedRowHeight, bufferSize });
+    this.pool = new Map(); // index -> element，复用节点减少创建/GC
+    this.viewportHeight = container.clientHeight;
+    this._rafId = null;
+    this._lastRange = null;
+    this._buildDom();
+    this._bindEvents();
+    this._render();
+  }
+
+  _buildDom() {
+    this.container.style.position = 'relative';
+
+    // phantom：仅用来撑出原生可滚动高度(scrollHeight)，本身不承载内容
+    this.phantom = document.createElement('div');
+    this.phantom.style.cssText = 'position:absolute;top:0;left:0;width:1px;pointer-events:none;';
+
+    // content：真正承载渲染出来的行，整体通过 translateY 移动
+    this.content = document.createElement('div');
+    this.content.style.cssText = 'position:absolute;top:0;left:0;right:0;will-change:transform;';
+
+    this.container.appendChild(this.phantom);
+    this.container.appendChild(this.content);
+    this._syncPhantomHeight();
+  }
+
+  _syncPhantomHeight() {
+    this.phantom.style.height = this.core.getTotalHeight() + 'px';
+  }
+
+  _bindEvents() {
+    this.container.addEventListener('scroll', () => {
+      if (this._rafId) return;
+      this._rafId = requestAnimationFrame((now) => {
+        this._rafId = null;
+        this.core.updateScrollMotion(this.container.scrollTop, now);
+        this._render();
+      });
+    }, { passive: true });
+
+    if (typeof ResizeObserver !== 'undefined') {
+      this._ro = new ResizeObserver(() => {
+        this.viewportHeight = this.container.clientHeight;
+        this._render();
+      });
+      this._ro.observe(this.container);
+    }
+  }
+
+  _render() {
+    const scrollTop = this.container.scrollTop;
+    const range = this.core.getVisibleRange(scrollTop, this.viewportHeight);
+    this._lastRange = range;
+
+    // 回收超出渲染区间的节点
+    for (const [index, el] of this.pool) {
+      if (index < range.start || index > range.end) {
+        el.remove();
+        this.pool.delete(index);
+      }
+    }
+
+    // 按数据顺序插入/复用节点，保持 DOM 顺序与逻辑顺序一致
+    let refNode = this.content.firstChild;
+    for (let i = range.start; i <= range.end; i++) {
+      let el = this.pool.get(i);
+      if (!el) {
+        el = this.renderRow(i);
+        this.pool.set(i, el);
+      }
+      if (refNode !== el) {
+        this.content.insertBefore(el, refNode);
+      } else {
+        refNode = refNode.nextSibling;
+      }
+    }
+
+    // 关键：只做一次 transform，绝不逐行设置 top/left
+    this.content.style.transform = 'translateY(' + range.offsetTop + 'px)';
+
+    // 渲染后统一测量真实高度，回填缓存
+    let changed = false;
+    for (let i = range.start; i <= range.end; i++) {
+      const el = this.pool.get(i);
+      const h = el.getBoundingClientRect().height;
+      if (this.core.setRowHeight(i, h)) changed = true;
+    }
+    if (changed) {
+      this._syncPhantomHeight();
+      const fixedOffset = this.core.getOffsetTop(range.start);
+      this.content.style.transform = 'translateY(' + fixedOffset + 'px)';
+    }
+
+    if (this.onRender) this.onRender(range, this.pool.size);
+  }
+
+  scrollTo(index, align = 'top') {
+    const target = this.core.calculateScrollTop(index, { align, viewportHeight: this.viewportHeight });
+    // 唯一一次主动写 scrollTop：同步原生滚动条滑块位置。
+    // 内容自身的可视定位仍完全由上面 _render() 里的 translateY 计算完成。
+    this.container.scrollTop = target;
+    this.core.updateScrollMotion(target, performance.now());
+    this._render();
+  }
+
+  getVisibleRange() {
+    return this._lastRange;
+  }
+}
+
+/* =========================================================================
+ * PART 3 — Demo 数据与界面绑定
+ * ========================================================================= */
+
+const TOTAL = 1_000_000;
+
+// 确定性伪随机，保证每次渲染同一行内容一致（不能用 Math.random，否则每次测高度都会变）
+function seededLines(index) {
+  let x = Math.sin(index * 12.9898) * 43758.5453;
+  x = x - Math.floor(x);
+  return 1 + Math.floor(x * 5); // 1~5 行内容，制造真实的动态高度
+}
+const TAGS = ['GET', 'POST', 'ERROR', 'WARN', 'INFO', 'DEBUG'];
+function seededTag(index) {
+  return TAGS[index % TAGS.length];
+}
+
+function renderRow(index) {
+  const el = document.createElement('div');
+  el.className = 'row';
+  const lines = seededLines(index);
+  if (lines >= 4) el.classList.add('measured-tall');
+
+  const idx = document.createElement('div');
+  idx.className = 'idx';
+  idx.textContent = '#' + index;
+
+  const body = document.createElement('div');
+  body.className = 'body';
+  let html = '<span class="tag">[' + seededTag(index) + ']</span>row ' + index + ' — 动态内容行 ' + (index % 997) + '，模拟不定长日志/评论文本。';
+  for (let i = 1; i < lines; i++) {
+    html += '<br>补充说明第 ' + i + ' 行：内容长度由种子函数决定，用于制造真实世界中常见的动态行高分布。';
+  }
+  body.innerHTML = html;
+
+  el.appendChild(idx);
+  el.appendChild(body);
+  return el;
+}
+
+const container = document.getElementById('scroll-container');
+const view = new VirtualScrollerView({
+  container,
+  totalCount: TOTAL,
+  estimatedRowHeight: 46, // 预估行高，未测量行先用它占位
+  bufferSize: 5,
+  renderRow,
+});
+
+const elRendered = document.getElementById('s-rendered');
+const elRange = document.getElementById('s-range');
+const elBuffer = document.getElementById('s-buffer');
+const elDir = document.getElementById('s-dir');
+const elVelocity = document.getElementById('s-velocity');
+const elTotal = document.getElementById('s-total');
+
+view.onRender = (range, poolSize) => {
+  elRendered.textContent = poolSize;
+  elRange.textContent = range.firstVisible + ' - ' + range.lastVisible;
+  elBuffer.textContent = range.bufferTop + ' / ' + range.bufferBottom;
+  elDir.textContent = view.core._direction === 'down' ? '↓ down' : '↑ up';
+  elVelocity.textContent = Math.abs(view.core._velocity).toFixed(2) + ' px/ms';
+  elTotal.textContent = Math.round(view.core.getTotalHeight()).toLocaleString() + ' px';
+};
+view.onRender(view.getVisibleRange(), view.pool.size);
+
+document.getElementById('jump-btn').addEventListener('click', () => {
+  const input = document.getElementById('jump-input');
+  const idx = Math.max(0, Math.min(TOTAL - 1, parseInt(input.value, 10) || 0));
+  view.scrollTo(idx, 'top');
+});
+document.querySelectorAll('[data-jump]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const val = btn.dataset.jump;
+    const idx = val === 'random' ? Math.floor(Math.random() * TOTAL) : parseInt(val, 10);
+    view.scrollTo(idx, 'center');
+  });
+});
+</script>
+</body>
+</html>
