@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>Three.js 动画技术展示</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg: #0a0d12;
+    --panel: #12161f;
+    --line: #232a38;
+    --text: #e9edf5;
+    --muted: #7f8898;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background: var(--bg); color: var(--text);
+    font-family:'Sora', sans-serif;
+    overflow:hidden;
+  }
+  #canvas-wrap{ position:absolute; inset:0; }
+  canvas{ display:block; }
+
+  .topbar{
+    position:absolute; top:0; left:0; right:0;
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 20px 26px; pointer-events:none;
+  }
+  .brand{ font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); }
+  .brand b{ color:var(--text); font-weight:700; }
+
+  .panel{
+    position:absolute; right:24px; top:74px;
+    width: 250px;
+    background: rgba(18,22,31,0.78);
+    border:1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    backdrop-filter: blur(10px);
+  }
+  .panel h3{
+    margin:0 0 12px; font-size:11px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--muted); font-weight:600;
+  }
+  .item{
+    display:flex; gap:10px; margin-bottom:12px; align-items:flex-start;
+  }
+  .item i{ width:9px; height:9px; border-radius:3px; margin-top:5px; flex-shrink:0; }
+  .item div{ font-size:12px; line-height:1.55; }
+  .item b{ display:block; font-size:12.5px; color:var(--text); margin-bottom:2px; }
+  .item span{ color:var(--muted); font-family:'IBM Plex Mono', monospace; font-size:11px; }
+
+  .hint{
+    position:absolute; left:24px; bottom:24px;
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--muted);
+    line-height:1.7; pointer-events:none;
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-wrap"></div>
+
+<div class="topbar">
+  <div class="brand"><b>ANIMATION LAB</b> · Three.js 五种动画方案对比</div>
+</div>
+
+<div class="panel" id="panel"></div>
+<div class="hint">拖动可暂停自动环绕 · 滚轮缩放</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  // ================= 场景基础 =================
+  const wrap = document.getElementById('canvas-wrap');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0d12);
+  scene.fog = new THREE.Fog(0x0a0d12, 18, 40);
+
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+  const renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  wrap.appendChild(renderer.domElement);
+
+  window.addEventListener('resize', ()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x14171d, 1.0));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.65);
+  dirLight.position.set(6, 14, 8);
+  scene.add(dirLight);
+
+  const CENTER = new THREE.Vector3(0, 1.6, 0);
+  let camAngle = 0.3, camDist = 23, autoRotate = true;
+  function updateCamera(){
+    camera.position.set(
+      CENTER.x + Math.sin(camAngle)*camDist,
+      5.5,
+      CENTER.z + Math.cos(camAngle)*camDist
+    );
+    camera.lookAt(CENTER);
+  }
+  updateCamera();
+
+  let dragging=false, lastX=0;
+  renderer.domElement.addEventListener('mousedown', e=>{dragging=true; autoRotate=false; lastX=e.clientX;});
+  window.addEventListener('mouseup', ()=>dragging=false);
+  window.addEventListener('mousemove', e=>{
+    if(!dragging) return;
+    camAngle -= (e.clientX-lastX)*0.006;
+    lastX=e.clientX;
+    updateCamera();
+  });
+  renderer.domElement.addEventListener('wheel', e=>{
+    camDist = Math.max(10, Math.min(36, camDist + e.deltaY*0.015));
+  });
+
+  // 地面网格
+  const grid = new THREE.GridHelper(40, 40, 0x232a38, 0x161b24);
+  scene.add(grid);
+
+  function makeLabelSprite(text, sub){
+    const c = document.createElement('canvas');
+    c.width = 320; c.height = 110;
+    const ctx = c.getContext('2d');
+    ctx.font = '700 34px Sora, sans-serif';
+    ctx.fillStyle = 'rgba(233,237,245,0.95)';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, 160, 42);
+    ctx.font = '400 22px "IBM Plex Mono", monospace';
+    ctx.fillStyle = 'rgba(127,136,152,0.9)';
+    ctx.fillText(sub, 160, 78);
+    const tex = new THREE.CanvasTexture(c);
+    const mat = new THREE.SpriteMaterial({ map:tex, transparent:true, depthWrite:false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(3.2, 1.1, 1);
+    return sprite;
+  }
+
+  const STATIONS = [
+    { x:-8, color:0x5ec8ff, name:'缓动变换',   sub:'easing + transform' },
+    { x:-4, color:0xffb454, name:'路径动画',   sub:'Curve.getPointAt()' },
+    { x:0,  color:0x8fd694, name:'顶点着色器', sub:'GPU vertex shader' },
+    { x:4,  color:0xff8fa3, name:'群体动画',   sub:'InstancedMesh + 三角函数' },
+    { x:8,  color:0xc9a6ff, name:'弹簧动画',   sub:'damped spring' },
+  ];
+  STATIONS.forEach(s=>{
+    const label = makeLabelSprite(s.name, s.sub);
+    label.position.set(s.x, 4.2, 0);
+    scene.add(label);
+
+    const baseGeo = new THREE.CylinderGeometry(1.6, 1.6, 0.06, 32);
+    const baseMat = new THREE.MeshStandardMaterial({ color:s.color, transparent:true, opacity:0.12 });
+    const base = new THREE.Mesh(baseGeo, baseMat);
+    base.position.set(s.x, 0.02, 0);
+    scene.add(base);
+  });
+
+  // ================= 站点 1：缓动变换（Easing）=================
+  const s1 = STATIONS[0];
+  const easeBox = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({ color:s1.color, roughness:0.4 })
+  );
+  scene.add(easeBox);
+  function easeOutBounce(t){
+    const n1=7.5625, d1=2.75;
+    if(t<1/d1) return n1*t*t;
+    if(t<2/d1) return n1*(t-=1.5/d1)*t+0.75;
+    if(t<2.5/d1) return n1*(t-=2.25/d1)*t+0.9375;
+    return n1*(t-=2.625/d1)*t+0.984375;
+  }
+  function updateEaseBox(elapsed){
+    const period = 1.6;
+    const t = (elapsed % period) / period;
+    const bounce = easeOutBounce(t);
+    easeBox.position.set(s1.x, 0.5 + bounce*1.8, 0);
+    const squash = 1 - Math.sin(t*Math.PI)*0.28;
+    easeBox.scale.set(1 + (1-squash)*0.6, squash, 1 + (1-squash)*0.6);
+  }
+
+  // ================= 站点 2：路径动画（Curve）=================
+  const s2 = STATIONS[1];
+  const pathPoints = [];
+  for(let i=0;i<=24;i++){
+    const a = (i/24) * Math.PI*2;
+    pathPoints.push(new THREE.Vector3(
+      s2.x + Math.cos(a)*1.6,
+      0.5 + Math.sin(a*2)*0.35,
+      Math.sin(a)*1.6
+    ));
+  }
+  const pathCurve = new THREE.CatmullRomCurve3(pathPoints, true);
+  const pathLineGeo = new THREE.BufferGeometry().setFromPoints(pathCurve.getPoints(120));
+  const pathLine = new THREE.Line(pathLineGeo, new THREE.LineBasicMaterial({ color:s2.color, transparent:true, opacity:0.35 }));
+  scene.add(pathLine);
+  const pathBall = new THREE.Mesh(
+    new THREE.SphereGeometry(0.28, 20, 20),
+    new THREE.MeshStandardMaterial({ color:s2.color, roughness:0.35, emissive:0x552e00, emissiveIntensity:0.3 })
+  );
+  scene.add(pathBall);
+  function updatePathBall(elapsed){
+    const t = (elapsed * 0.12) % 1;
+    pathBall.position.copy(pathCurve.getPointAt(t));
+  }
+
+  // ================= 站点 3：顶点着色器动画（GPU）=================
+  const s3 = STATIONS[2];
+  const waveGeo = new THREE.PlaneGeometry(2.8, 2.8, 32, 32);
+  const waveMat = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uColor: { value: new THREE.Color(s3.color) },
+    },
+    vertexShader: `
+      uniform float uTime;
+      varying float vElevation;
+      void main(){
+        vec3 pos = position;
+        float elevation = sin(pos.x*2.2 + uTime*2.0) * cos(pos.y*2.2 + uTime*1.4) * 0.28;
+        pos.z += elevation;
+        vElevation = elevation;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      varying float vElevation;
+      void main(){
+        vec3 color = uColor * (0.75 + vElevation*1.2);
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `,
+    side: THREE.DoubleSide,
+  });
+  const wavePlane = new THREE.Mesh(waveGeo, waveMat);
+  wavePlane.rotation.x = -Math.PI/2;
+  wavePlane.position.set(s3.x, 0.5, 0);
+  scene.add(wavePlane);
+  function updateWave(elapsed){
+    waveMat.uniforms.uTime.value = elapsed;
+  }
+
+  // ================= 站点 4：群体/程序化动画（InstancedMesh）=================
+  const s4 = STATIONS[3];
+  const swarmCount = 46;
+  const swarmGeo = new THREE.SphereGeometry(1, 8, 8);
+  const swarmMat = new THREE.MeshStandardMaterial({ color:s4.color, roughness:0.5 });
+  const swarmMesh = new THREE.InstancedMesh(swarmGeo, swarmMat, swarmCount);
+  scene.add(swarmMesh);
+  const swarmData = [];
+  for(let i=0;i<swarmCount;i++){
+    swarmData.push({
+      radius: 0.6 + Math.random()*1.5,
+      speed: 0.4 + Math.random()*0.8,
+      phase: Math.random()*Math.PI*2,
+      bobAmp: 0.15 + Math.random()*0.35,
+      bobSpeed: 0.8 + Math.random()*1.2,
+      scale: 0.06 + Math.random()*0.07,
+    });
+  }
+  const swarmM4 = new THREE.Matrix4();
+  const swarmQuat = new THREE.Quaternion();
+  function updateSwarm(elapsed){
+    swarmData.forEach((d,i)=>{
+      const angle = elapsed*d.speed + d.phase;
+      const x = s4.x + Math.cos(angle)*d.radius;
+      const z = Math.sin(angle)*d.radius;
+      const y = 0.9 + Math.sin(elapsed*d.bobSpeed + d.phase)*d.bobAmp;
+      swarmM4.compose(new THREE.Vector3(x,y,z), swarmQuat, new THREE.Vector3(d.scale,d.scale,d.scale));
+      swarmMesh.setMatrixAt(i, swarmM4);
+    });
+    swarmMesh.instanceMatrix.needsUpdate = true;
+  }
+
+  // ================= 站点 5：弹簧阻尼动画（Spring）=================
+  const s5 = STATIONS[4];
+  const springBall = new THREE.Mesh(
+    new THREE.SphereGeometry(0.42, 24, 24),
+    new THREE.MeshStandardMaterial({ color:s5.color, roughness:0.35 })
+  );
+  scene.add(springBall);
+  const springPos = new THREE.Vector3(s5.x, 1.2, 0);
+  const springVel = new THREE.Vector3();
+  let springTarget = new THREE.Vector3(s5.x, 1.2, 0);
+  let lastJumpTime = 0;
+  const targetMarker = new THREE.Mesh(
+    new THREE.RingGeometry(0.1, 0.14, 20),
+    new THREE.MeshBasicMaterial({ color:s5.color, transparent:true, opacity:0.5, side:THREE.DoubleSide })
+  );
+  targetMarker.rotation.x = -Math.PI/2;
+  scene.add(targetMarker);
+
+  function updateSpring(elapsed, dt){
+    if(elapsed - lastJumpTime > 1.8){
+      lastJumpTime = elapsed;
+      const ang = Math.random()*Math.PI*2;
+      const r = 0.9 + Math.random()*0.7;
+      springTarget = new THREE.Vector3(s5.x + Math.cos(ang)*r, 0.6 + Math.random()*1.4, Math.sin(ang)*r);
+    }
+    const stiffness = 70, damping = 8;
+    const force = springTarget.clone().sub(springPos).multiplyScalar(stiffness);
+    springVel.add(force.multiplyScalar(dt));
+    springVel.multiplyScalar(Math.max(0, 1 - damping*dt));
+    springPos.add(springVel.clone().multiplyScalar(dt));
+    springBall.position.copy(springPos);
+    targetMarker.position.set(springTarget.x, 0.02, springTarget.z);
+  }
+
+  // ================= 图例面板 =================
+  const panel = document.getElementById('panel');
+  panel.innerHTML = `
+    <h3>五种动画方案</h3>
+    <div class="item"><i style="background:#5ec8ff"></i><div><b>缓动变换</b><span>position/scale + easing function</span></div></div>
+    <div class="item"><i style="background:#ffb454"></i><div><b>路径动画</b><span>CatmullRomCurve3.getPointAt(t)</span></div></div>
+    <div class="item"><i style="background:#8fd694"></i><div><b>顶点着色器</b><span>ShaderMaterial + uTime uniform</span></div></div>
+    <div class="item"><i style="background:#ff8fa3"></i><div><b>群体动画</b><span>InstancedMesh + 三角函数轨迹</span></div></div>
+    <div class="item"><i style="background:#c9a6ff"></i><div><b>弹簧动画</b><span>阻尼弹簧公式，非完整物理引擎</span></div></div>
+  `;
+
+  // ================= 渲染循环 =================
+  const clock = new THREE.Clock();
+  function animate(){
+    requestAnimationFrame(animate);
+    const dt = Math.min(clock.getDelta(), 0.05);
+    const elapsed = clock.getElapsedTime();
+
+    if(autoRotate){ camAngle += dt*0.08; updateCamera(); }
+
+    updateEaseBox(elapsed);
+    updatePathBall(elapsed);
+    updateWave(elapsed);
+    updateSwarm(elapsed);
+    updateSpring(elapsed, dt);
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+</script>
+</body>
+</html>
