@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#091014" />
+  <title>GlacialValley — Procedural Alpine Sunrise</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ice: #a9eff0;
+      --cyan: #5dd6cf;
+      --ink: #081015;
+      --panel: rgba(7, 15, 20, 0.72);
+      --line: rgba(174, 242, 238, 0.22);
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #05090c; }
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #e5f8f6;
+      user-select: none;
+    }
+    canvas { display: block; width: 100%; height: 100%; }
+    #app { position: fixed; inset: 0; }
+    #loader {
+      position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+      background:
+        radial-gradient(circle at 58% 42%, rgba(73, 137, 142, .18), transparent 34%),
+        linear-gradient(145deg, #071014, #030608 68%);
+      transition: opacity .8s ease, visibility .8s ease;
+    }
+    #loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .loader-card { width: min(520px, calc(100vw - 44px)); }
+    .eyebrow { letter-spacing: .36em; font-size: 10px; color: rgba(196, 246, 242, .56); }
+    h1 { margin: 14px 0 7px; font-weight: 300; letter-spacing: .12em; font-size: clamp(28px, 5vw, 54px); }
+    .subtitle { color: rgba(226, 250, 247, .58); font-size: 12px; line-height: 1.7; }
+    .bar { margin-top: 28px; height: 2px; background: rgba(179, 239, 236, .13); overflow: hidden; }
+    #barFill { height: 100%; width: 0%; background: linear-gradient(90deg, #4b8d93, #b8ffff); transition: width .25s ease; }
+    #status { margin-top: 12px; font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: rgba(213, 250, 247, .55); }
+    #hud { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+    .brand { position: absolute; top: 22px; left: 24px; }
+    .brand strong { display: block; letter-spacing: .26em; font-weight: 500; font-size: 13px; }
+    .brand span { display: block; margin-top: 6px; font-size: 9px; letter-spacing: .18em; color: rgba(215, 246, 243, .42); }
+    .stats {
+      position: absolute; top: 22px; right: 24px; text-align: right;
+      font: 10px/1.8 ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: rgba(225, 252, 249, .52);
+    }
+    #hint {
+      position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%);
+      padding: 9px 13px; border: 1px solid var(--line); background: var(--panel);
+      backdrop-filter: blur(12px); font-size: 10px; letter-spacing: .11em; color: rgba(224, 252, 249, .62);
+      transition: opacity .5s ease;
+    }
+    .crosshair { position: absolute; left: 50%; top: 50%; width: 24px; height: 24px; transform: translate(-50%, -50%); opacity: .34; }
+    .crosshair::before, .crosshair::after { content: ""; position: absolute; background: rgba(210, 255, 250, .48); }
+    .crosshair::before { left: 11px; top: 0; width: 1px; height: 24px; }
+    .crosshair::after { left: 0; top: 11px; width: 24px; height: 1px; }
+    #quality {
+      position: fixed; right: 22px; bottom: 22px; z-index: 12; pointer-events: auto;
+      border: 1px solid var(--line); background: rgba(7, 14, 18, .64); color: rgba(225, 253, 250, .68);
+      padding: 8px 10px; font-size: 10px; letter-spacing: .1em; cursor: pointer; backdrop-filter: blur(10px);
+    }
+    #error {
+      display: none; position: fixed; inset: 20px; z-index: 50; padding: 24px; overflow: auto;
+      background: rgba(40, 6, 7, .94); border: 1px solid rgba(255, 130, 130, .5); color: #ffdada;
+      white-space: pre-wrap; font: 12px/1.6 ui-monospace, monospace;
+    }
+    @media (max-width: 640px) {
+      .stats { display: none; }
+      .brand { top: 16px; left: 16px; }
+      #quality { right: 14px; bottom: 14px; }
+      #hint { bottom: 62px; width: calc(100vw - 28px); text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="loader">
+    <div class="loader-card">
+      <div class="eyebrow">PROCEDURAL ALPINE SYSTEM</div>
+      <h1>GLACIAL VALLEY</h1>
+      <div class="subtitle">Generating erosion-weighted ridges, kilometer-scale baked shadows, braided glacial water and 85,000 wind-reactive blades.</div>
+      <div class="bar"><div id="barFill"></div></div>
+      <div id="status">Initializing deterministic world seed…</div>
+    </div>
+  </div>
+  <div id="hud">
+    <div class="brand"><strong>GLACIAL VALLEY</strong><span>MATHEMATICAL LANDSCAPE / DAWN 05:47</span></div>
+    <div class="stats"><div id="fps">-- FPS</div><div>85,000 GRASS INSTANCES</div><div>ZERO IMAGE ASSETS</div></div>
+    <div class="crosshair"></div>
+    <div id="hint">DRAG TO LOOK · WHEEL TO DOLLY · DOUBLE CLICK TO RESET</div>
+  </div>
+  <button id="quality" type="button">QUALITY: ULTRA</button>
+  <pre id="error"></pre>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="./glacial-valley.js"></script>
+</body>
+</html>
