@@ -1,0 +1,30 @@
+:root {
+  /* --- BounceCrush 工业科技视觉 token --- */
+  --bc-bg: #0b0d10;          /* 舱体外壳 · 近黑 */
+  --bc-panel: #14181d;       /* HUD 面板底 */
+  --bc-panel-line: #262c33;  /* 面板分割线 / 铆钉灰 */
+  --bc-metal: #4b5560;       /* 合金基色 */
+  --bc-metal-light: #8a97a3; /* 高光冷灰 */
+  --bc-text: #dfe6ec;        /* 主文字 */
+  --bc-text-dim: #78838d;    /* 次要文字 */
+  --bc-energy: #00e5c3;      /* 动能 / 撞击高亮 · 青绿 */
+  --bc-warn: #ff5a36;        /* 过载 / 警示 · 橙红 */
+  --bc-font-display: 'Oswald', 'Microsoft YaHei', sans-serif;
+  --bc-font-mono: 'JetBrains Mono', 'Consolas', monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bc-bg);
+  color: var(--bc-text);
+  font-family: var(--bc-font-mono);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--bc-energy); color: #000; }

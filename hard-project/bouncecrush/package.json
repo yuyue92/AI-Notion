@@ -1,0 +1,21 @@
+{
+  "name": "bouncecrush",
+  "private": true,
+  "version": "0.1.0",
+  "description": "BounceCrush — 高反弹合金球 3D 物理交互原型（Vue3 + Three.js + cannon-es）",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.4.21",
+    "three": "^0.163.0",
+    "cannon-es": "^0.20.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.4",
+    "vite": "^5.2.0"
+  }
+}
