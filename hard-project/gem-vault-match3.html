@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>永夜藏宝阁 · 宝石消除</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Manrope:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #150F28;
+    --panel: #1E1638;
+    --panel-deep: #120C24;
+    --frame: #C9A227;
+    --frame-light: #F0D77B;
+    --text: #EDE6F5;
+    --text-dim: #9C8FBF;
+    --danger: #E4483C;
+    --success: #3FC17B;
+
+    --gem-ruby: #E4483C;
+    --gem-ruby-d: #7E211B;
+    --gem-sapphire: #3E8FE0;
+    --gem-sapphire-d: #1D4A80;
+    --gem-emerald: #3FC17B;
+    --gem-emerald-d: #1D6B45;
+    --gem-amber: #F2B23D;
+    --gem-amber-d: #8A5F14;
+    --gem-amethyst: #A15DE8;
+    --gem-amethyst-d: #532988;
+    --gem-aqua: #2FD1C4;
+    --gem-aqua-d: #17756F;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+
+  body {
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(201,162,39,0.14), transparent 55%),
+      radial-gradient(ellipse at 50% 110%, rgba(62,143,224,0.10), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Manrope", "Segoe UI", system-ui, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 30px 16px 70px;
+  }
+
+  .app-shell { width: 100%; max-width: 560px; }
+
+  header { text-align: center; margin-bottom: 18px; }
+
+  .eyebrow {
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  h1 {
+    font-family: "Cinzel", Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(26px, 5vw, 36px);
+    margin: 8px 0 8px;
+    background: linear-gradient(180deg, var(--frame-light), var(--frame));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 0.02em;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--text-dim);
+    max-width: 420px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  /* ---------- HUD ---------- */
+  .hud {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 20px 0 22px;
+  }
+
+  .hud-pill {
+    background: var(--panel);
+    border: 1.5px solid rgba(201,162,39,0.5);
+    border-radius: 999px;
+    padding: 7px 15px;
+    font-size: 12.5px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .hud-pill b {
+    font-family: "Space Mono", monospace;
+    color: var(--frame-light);
+    font-size: 13px;
+  }
+
+  .hud-pill span.label { color: var(--text-dim); }
+
+  .score-track {
+    width: 100px;
+    height: 7px;
+    background: var(--panel-deep);
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid rgba(201,162,39,0.4);
+  }
+
+  .score-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--gem-emerald), var(--frame-light));
+    transition: width .4s ease;
+  }
+
+  #newGameBtn {
+    font-family: "Manrope", sans-serif;
+    font-weight: 700;
+    font-size: 12.5px;
+    background: var(--frame);
+    color: #241a02;
+    border: none;
+    border-radius: 999px;
+    padding: 9px 17px;
+    cursor: pointer;
+  }
+  #newGameBtn:hover { background: var(--frame-light); }
+  #newGameBtn:active { transform: translateY(1px); }
+
+  /* ---------- vault frame ---------- */
+  .vault-frame {
+    position: relative;
+    margin: 0 auto;
+    padding: 14px;
+    border-radius: 22px;
+    background: linear-gradient(160deg, #2A2050, var(--panel-deep));
+    border: 3px solid var(--frame);
+    box-shadow:
+      0 0 0 6px var(--panel-deep),
+      0 0 0 8px rgba(201,162,39,0.35),
+      0 20px 50px rgba(0,0,0,0.5);
+    width: fit-content;
+  }
+
+  .rivet {
+    position: absolute;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--frame-light), var(--frame) 60%, #7a5e12 100%);
+  }
+  .rivet.tl { top: 8px; left: 8px; }
+  .rivet.tr { top: 8px; right: 8px; }
+  .rivet.bl { bottom: 8px; left: 8px; }
+  .rivet.br { bottom: 8px; right: 8px; }
+
+  .board-wrap {
+    position: relative;
+    width: min(88vw, 420px);
+    overflow: hidden;
+    border-radius: 14px;
+    background:
+      repeating-linear-gradient(45deg, rgba(0,0,0,0.15) 0 10px, transparent 10px 20px),
+      var(--panel);
+  }
+
+  .sockets, .gems-layer, .fx-layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+  .fx-layer { pointer-events: none; z-index: 5; }
+
+  .socket {
+    position: absolute;
+    border-radius: 12px;
+    background: var(--panel-deep);
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.6);
+  }
+
+  .gem {
+    position: absolute;
+    border: none;
+    padding: 0;
+    background: none;
+    cursor: grab;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: transform .22s ease;
+    will-change: transform;
+    z-index: 2;
+  }
+  .gem:active { cursor: grabbing; }
+
+  .gem.selected { z-index: 4; }
+  .gem.selected .gem-body { box-shadow: 0 0 0 3px var(--frame-light), 0 0 14px rgba(240,215,123,0.7); }
+
+  .gem-body {
+    width: 100%; height: 100%;
+    border-radius: 30% 70% 65% 35% / 40% 35% 65% 60%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: inset 0 -4px 6px rgba(0,0,0,0.35), 0 3px 6px rgba(0,0,0,0.4);
+  }
+
+  .gem-body .facet {
+    position: absolute;
+    top: 14%; left: 20%;
+    width: 34%; height: 24%;
+    background: rgba(255,255,255,0.55);
+    border-radius: 50%;
+    filter: blur(1px);
+    transform: rotate(-20deg);
+  }
+
+  .gem-body .glyph {
+    font-size: 58%;
+    color: rgba(0,0,0,0.35);
+    font-weight: 700;
+  }
+
+  .gem--ruby .gem-body { background: radial-gradient(circle at 32% 28%, #ff8f82, var(--gem-ruby) 55%, var(--gem-ruby-d) 100%); }
+  .gem--sapphire .gem-body { background: radial-gradient(circle at 32% 28%, #9cc9f7, var(--gem-sapphire) 55%, var(--gem-sapphire-d) 100%); }
+  .gem--emerald .gem-body { background: radial-gradient(circle at 32% 28%, #96f0c0, var(--gem-emerald) 55%, var(--gem-emerald-d) 100%); }
+  .gem--amber .gem-body { background: radial-gradient(circle at 32% 28%, #ffe19c, var(--gem-amber) 55%, var(--gem-amber-d) 100%); }
+  .gem--amethyst .gem-body { background: radial-gradient(circle at 32% 28%, #dcb6fb, var(--gem-amethyst) 55%, var(--gem-amethyst-d) 100%); }
+  .gem--aqua .gem-body { background: radial-gradient(circle at 32% 28%, #a2f3ec, var(--gem-aqua) 55%, var(--gem-aqua-d) 100%); }
+
+  .gem.invalid .gem-body { animation: shake .3s; }
+  .gem.clearing .gem-body { animation: gemPop .25s ease forwards; }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-5px) rotate(-6deg); }
+    75% { transform: translateX(5px) rotate(6deg); }
+  }
+
+  @keyframes gemPop {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.9; }
+    100% { transform: scale(0.1); opacity: 0; }
+  }
+
+  .combo-popup {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: "Cinzel", serif;
+    font-weight: 600;
+    font-size: 22px;
+    color: var(--frame-light);
+    text-shadow: 0 0 12px rgba(240,215,123,0.8), 0 2px 4px rgba(0,0,0,0.6);
+    opacity: 0;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .combo-popup.show { animation: comboFloat .9s ease forwards; }
+
+  @keyframes comboFloat {
+    0% { opacity: 0; transform: translate(-50%,-40%) scale(0.8); }
+    20% { opacity: 1; transform: translate(-50%,-55%) scale(1.08); }
+    75% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%,-85%) scale(1); }
+  }
+
+  .toast {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.65);
+    border: 1px solid var(--frame);
+    color: var(--frame-light);
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    opacity: 0;
+    white-space: nowrap;
+  }
+  .toast.show { animation: toastFade 1.6s ease forwards; }
+  @keyframes toastFade {
+    0% { opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ---------- modal ---------- */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(6,4,16,0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: linear-gradient(160deg, #2A2050, var(--panel-deep));
+    border: 3px solid var(--frame);
+    border-radius: 18px;
+    max-width: 340px;
+    width: 100%;
+    padding: 28px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .modal h2 {
+    font-family: "Cinzel", serif;
+    font-size: 24px;
+    margin: 6px 0 4px;
+    color: var(--frame-light);
+  }
+
+  .modal p.desc { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; }
+
+  .modal-stats { display: flex; justify-content: center; gap: 16px; margin-bottom: 20px; }
+  .modal-stats div { font-family: "Space Mono", monospace; }
+  .modal-stats b { display: block; font-size: 18px; color: var(--frame-light); }
+  .modal-stats span { font-size: 10px; color: var(--text-dim); }
+
+  #playAgainBtn {
+    background: var(--frame);
+    color: #241a02;
+    border: none;
+    font-weight: 700;
+    font-size: 13.5px;
+    padding: 10px 22px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  #playAgainBtn:active { transform: translateY(1px); }
+
+  .confetti {
+    position: absolute;
+    top: -10px;
+    width: 7px; height: 12px;
+    opacity: 0.9;
+    animation: fall linear forwards;
+  }
+  @keyframes fall { to { transform: translateY(320px) rotate(320deg); opacity: 0.15; } }
+
+  button:focus-visible { outline: 3px solid var(--frame-light); outline-offset: 2px; }
+
+  .reduced * { animation-duration: 0.01s !important; transition-duration: 0.01s !important; }
+
+  @media (max-width: 480px) {
+    .hud-pill { font-size: 11px; padding: 6px 11px; }
+    .score-track { width: 72px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <header>
+    <div class="eyebrow">Gem Vault · Match &amp; Clear</div>
+    <h1>永夜藏宝阁</h1>
+    <p class="subtitle">拖动宝石（或点选两颗相邻宝石）交换位置，连成三个以上同色即可消除。在步数耗尽前达到目标分数，开启宝库。</p>
+  </header>
+
+  <div class="hud">
+    <div class="hud-pill">
+      <span class="label">分数</span><b id="scoreText">0 / 1000</b>
+      <div class="score-track"><div class="score-fill" id="scoreFill"></div></div>
+    </div>
+    <div class="hud-pill"><span class="label">步数</span><b id="movesText">20</b></div>
+    <button id="newGameBtn" type="button">重新开始</button>
+  </div>
+
+  <div class="vault-frame">
+    <div class="rivet tl"></div><div class="rivet tr"></div>
+    <div class="rivet bl"></div><div class="rivet br"></div>
+    <div class="board-wrap" id="boardWrap">
+      <div class="sockets" id="sockets"></div>
+      <div class="gems-layer" id="gemsLayer"></div>
+      <div class="fx-layer">
+        <div class="combo-popup" id="comboPopup"></div>
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBox">
+    <div class="eyebrow" id="modalEyebrow" style="color:var(--frame-light)">VAULT STATUS</div>
+    <h2 id="modalTitle">宝库已开启！</h2>
+    <p class="desc" id="modalDesc">你在步数耗尽前达成了目标分数。</p>
+    <div class="modal-stats">
+      <div><b id="finalScore">0</b><span>最终分数</span></div>
+      <div><b id="finalMoves">0</b><span>剩余步数</span></div>
+      <div><b id="finalCombo">1</b><span>最高连击</span></div>
+    </div>
+    <button id="playAgainBtn" type="button">再来一次</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const SIZE = 8;
+  const TARGET_SCORE = 1000;
+  const START_MOVES = 20;
+  const MOVE_MS = 220;
+  const CLEAR_MS = 250;
+  const GEM_TYPES = ["ruby", "sapphire", "emerald", "amber", "amethyst", "aqua"];
+  const GEM_GLYPH = { ruby: "\u25C6", sapphire: "\u25CF", emerald: "\u25B2", amber: "\u2605", amethyst: "\u2726", aqua: "\u25A0" };
+
+  const boardWrap = document.getElementById('boardWrap');
+  const socketsLayer = document.getElementById('sockets');
+  const gemsLayer = document.getElementById('gemsLayer');
+  const comboPopup = document.getElementById('comboPopup');
+  const toastEl = document.getElementById('toast');
+  const scoreText = document.getElementById('scoreText');
+  const scoreFill = document.getElementById('scoreFill');
+  const movesText = document.getElementById('movesText');
+  const newGameBtn = document.getElementById('newGameBtn');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalDesc = document.getElementById('modalDesc');
+  const modalEyebrow = document.getElementById('modalEyebrow');
+  const finalScore = document.getElementById('finalScore');
+  const finalMoves = document.getElementById('finalMoves');
+  const finalCombo = document.getElementById('finalCombo');
+  const playAgainBtn = document.getElementById('playAgainBtn');
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reducedMotion) document.body.classList.add('reduced');
+
+  let board = [];
+  let pitch = 0, gemSize = 0;
+  let score = 0, movesLeft = START_MOVES, chainCombo = 0, bestCombo = 0;
+  let busy = false;
+  let selectedGem = null;
+
+  function randomType(){
+    return GEM_TYPES[Math.floor(Math.random() * GEM_TYPES.length)];
+  }
+
+  function computePitch(){
+    const w = boardWrap.clientWidth;
+    pitch = w / SIZE;
+    gemSize = pitch * 0.86;
+    boardWrap.style.height = (pitch * SIZE) + 'px';
+  }
+
+  function posFor(row, col){
+    const offset = (pitch - gemSize) / 2;
+    return { x: col * pitch + offset, y: row * pitch + offset };
+  }
+
+  function layoutSockets(){
+    socketsLayer.innerHTML = '';
+    for (let r = 0; r < SIZE; r++){
+      for (let c = 0; c < SIZE; c++){
+        const s = document.createElement('div');
+        s.className = 'socket';
+        const p = posFor(r, c);
+        s.style.width = gemSize + 'px';
+        s.style.height = gemSize + 'px';
+        s.style.transform = 'translate(' + p.x + 'px,' + p.y + 'px)';
+        socketsLayer.appendChild(s);
+      }
+    }
+  }
+
+  function layoutGem(gem){
+    const p = posFor(gem.row, gem.col);
+    gem.el.style.width = gemSize + 'px';
+    gem.el.style.height = gemSize + 'px';
+    gem.el.style.transform = 'translate(' + p.x + 'px,' + p.y + 'px)';
+  }
+
+  function moveGemTo(gem, row, col){
+    gem.row = row;
+    gem.col = col;
+    layoutGem(gem);
+  }
+
+  function relayoutAll(){
+    computePitch();
+    layoutSockets();
+    for (let r = 0; r < SIZE; r++){
+      for (let c = 0; c < SIZE; c++){
+        if (board[r][c]) layoutGem(board[r][c]);
+      }
+    }
+  }
+  window.addEventListener('resize', relayoutAll);
+
+  function updateHUD(){
+    scoreText.textContent = Math.min(score, TARGET_SCORE) + ' / ' + TARGET_SCORE;
+    scoreFill.style.width = Math.min(100, (score / TARGET_SCORE) * 100) + '%';
+    movesText.textContent = String(Math.max(0, movesLeft));
+  }
+
+  function showCombo(step, points){
+    comboPopup.classList.remove('show');
+    void comboPopup.offsetWidth;
+    comboPopup.textContent = step > 1 ? ('连击 x' + step + '  +' + points) : ('+' + points);
+    comboPopup.classList.add('show');
+  }
+
+  function showToast(msg){
+    toastEl.classList.remove('show');
+    void toastEl.offsetWidth;
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+  }
+
+  function deselectAll(){
+    if (selectedGem) selectedGem.el.classList.remove('selected');
+    selectedGem = null;
+  }
+
+  function areAdjacent(a, b){
+    return (Math.abs(a.row - b.row) + Math.abs(a.col - b.col)) === 1;
+  }
+
+  /* ---------- gem creation ---------- */
+  function buildGemElement(type){
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'gem gem--' + type;
+    el.innerHTML = '<span class="gem-body"><span class="facet"></span><span class="glyph">' + GEM_GLYPH[type] + '</span></span>';
+    gemsLayer.appendChild(el);
+    return el;
+  }
+
+  function createGemAt(row, col, type, stagger){
+    const el = buildGemElement(type);
+    const gem = { type, row, col, el };
+    layoutGem(gem);
+    if (!reducedMotion){
+      el.style.opacity = '0';
+      el.style.transition = 'transform .22s ease, opacity .3s ease';
+      setTimeout(() => { el.style.opacity = '1'; }, stagger || 0);
+    }
+    initGemInteractions(gem);
+    return gem;
+  }
+
+  function spawnGem(col, finalRow, spawnRow){
+    const type = randomType();
+    const el = buildGemElement(type);
+    const gem = { type, row: spawnRow, col, el };
+    el.style.transition = 'none';
+    layoutGem(gem);
+    requestAnimationFrame(() => {
+      el.style.transition = '';
+      moveGemTo(gem, finalRow, col);
+    });
+    initGemInteractions(gem);
+    return gem;
+  }
+
+  /* ---------- matching logic ---------- */
+  function findMatches(){
+    const matched = new Set();
+    const runLengths = [];
+
+    for (let r = 0; r < SIZE; r++){
+      let runStart = 0;
+      for (let c = 1; c <= SIZE; c++){
+        const same = c < SIZE && board[r][c] && board[r][c].type === board[r][runStart].type;
+        if (!same){
+          const len = c - runStart;
+          if (len >= 3){
+            runLengths.push(len);
+            for (let k = runStart; k < c; k++) matched.add(board[r][k]);
+          }
+          runStart = c;
+        }
+      }
+    }
+    for (let c = 0; c < SIZE; c++){
+      let runStart = 0;
+      for (let r = 1; r <= SIZE; r++){
+        const same = r < SIZE && board[r][c] && board[r][c].type === board[runStart][c].type;
+        if (!same){
+          const len = r - runStart;
+          if (len >= 3){
+            runLengths.push(len);
+            for (let k = runStart; k < r; k++) matched.add(board[k][c]);
+          }
+          runStart = r;
+        }
+      }
+    }
+    matched.runLengths = runLengths;
+    return matched;
+  }
+
+  function scoreForMatches(matched){
+    let bonus = 0;
+    (matched.runLengths || []).forEach(len => {
+      if (len === 4) bonus += 20;
+      else if (len >= 5) bonus += 50;
+    });
+    return matched.size * 10 * chainCombo + bonus;
+  }
+
+  function wouldMatch(r1, c1, r2, c2){
+    const g1 = board[r1][c1], g2 = board[r2][c2];
+    const t1 = g1.type, t2 = g2.type;
+    g1.type = t2; g2.type = t1;
+    const has = findMatches().size > 0;
+    g1.type = t1; g2.type = t2;
+    return has;
+  }
+
+  function hasAnyValidMove(){
+    for (let r = 0; r < SIZE; r++){
+      for (let c = 0; c < SIZE; c++){
+        if (c + 1 < SIZE && wouldMatch(r, c, r, c + 1)) return true;
+        if (r + 1 < SIZE && wouldMatch(r, c, r + 1, c)) return true;
+      }
+    }
+    return false;
+  }
+
+  /* ---------- swap / resolve chain ---------- */
+  function swapCells(gemA, gemB){
+    const r1 = gemA.row, c1 = gemA.col, r2 = gemB.row, c2 = gemB.col;
+    board[r1][c1] = gemB;
+    board[r2][c2] = gemA;
+    moveGemTo(gemA, r2, c2);
+    moveGemTo(gemB, r1, c1);
+  }
+
+  function attemptSwap(gemA, gemB){
+    if (busy || !gemA || !gemB || gemA === gemB || !areAdjacent(gemA, gemB)) return;
+    busy = true;
+    deselectAll();
+    swapCells(gemA, gemB);
+    setTimeout(() => {
+      const matches = findMatches();
+      if (matches.size > 0){
+        movesLeft--;
+        updateHUD();
+        chainCombo = 0;
+        resolveBoard(matches);
+      } else {
+        swapCells(gemA, gemB);
+        gemA.el.classList.add('invalid');
+        gemB.el.classList.add('invalid');
+        setTimeout(() => {
+          gemA.el.classList.remove('invalid');
+          gemB.el.classList.remove('invalid');
+          busy = false;
+        }, 320);
+      }
+    }, MOVE_MS);
+  }
+
+  function resolveBoard(matches){
+    chainCombo++;
+    const points = scoreForMatches(matches);
+    score += points;
+    bestCombo = Math.max(bestCombo, chainCombo);
+    updateHUD();
+    showCombo(chainCombo, points);
+
+    matches.forEach(gem => gem.el.classList.add('clearing'));
+    setTimeout(() => {
+      matches.forEach(gem => {
+        board[gem.row][gem.col] = null;
+        gem.el.remove();
+      });
+      applyGravityAndRefill();
+      setTimeout(() => {
+        const next = findMatches();
+        if (next.size > 0){
+          resolveBoard(next);
+        } else {
+          busy = false;
+          handlePostMoveChecks();
+        }
+      }, MOVE_MS + 40);
+    }, CLEAR_MS);
+  }
+
+  function applyGravityAndRefill(){
+    for (let c = 0; c < SIZE; c++){
+      let writeRow = SIZE - 1;
+      for (let r = SIZE - 1; r >= 0; r--){
+        if (board[r][c]){
+          if (writeRow !== r){
+            board[writeRow][c] = board[r][c];
+            board[r][c] = null;
+            moveGemTo(board[writeRow][c], writeRow, c);
+          }
+          writeRow--;
+        }
+      }
+      const missing = writeRow + 1;
+      for (let i = 0; i < missing; i++){
+        const finalRow = i;
+        const spawnRow = i - missing;
+        board[finalRow][c] = spawnGem(c, finalRow, spawnRow);
+      }
+    }
+  }
+
+  function handlePostMoveChecks(){
+    if (score >= TARGET_SCORE){
+      endGame(true);
+    } else if (movesLeft <= 0){
+      endGame(false);
+    } else if (!hasAnyValidMove()){
+      showToast('无解，正在重新洗牌…');
+      reshuffleTypes();
+    }
+  }
+
+  function reshuffleTypes(){
+    busy = true;
+    let attempts = 0;
+    do {
+      for (let r = 0; r < SIZE; r++){
+        for (let c = 0; c < SIZE; c++) board[r][c].type = randomType();
+      }
+      attempts++;
+    } while ((findMatches().size > 0 || !hasAnyValidMove()) && attempts < 60);
+
+    for (let r = 0; r < SIZE; r++){
+      for (let c = 0; c < SIZE; c++){
+        const gem = board[r][c];
+        gem.el.className = 'gem gem--' + gem.type;
+        gem.el.innerHTML = '<span class="gem-body"><span class="facet"></span><span class="glyph">' + GEM_GLYPH[gem.type] + '</span></span>';
+      }
+    }
+    setTimeout(() => { busy = false; }, 300);
+  }
+
+  /* ---------- win / lose ---------- */
+  function endGame(won){
+    busy = true;
+    modalTitle.textContent = won ? '宝库已开启！' : '步数已耗尽';
+    modalDesc.textContent = won ? '你在步数耗尽前达成了目标分数。' : '再试一次，集齐足够的宝石分数吧。';
+    modalEyebrow.textContent = won ? 'VAULT UNLOCKED' : 'OUT OF MOVES';
+    finalScore.textContent = String(score);
+    finalMoves.textContent = String(Math.max(0, movesLeft));
+    finalCombo.textContent = 'x' + bestCombo;
+    modalOverlay.classList.add('open');
+    if (won && !reducedMotion) spawnConfetti();
+  }
+
+  function spawnConfetti(){
+    const colors = ['#E4483C', '#3E8FE0', '#3FC17B', '#F2B23D', '#A15DE8', '#2FD1C4'];
+    const modal = document.getElementById('modalBox');
+    for (let i = 0; i < 28; i++){
+      const piece = document.createElement('div');
+      piece.className = 'confetti';
+      piece.style.left = Math.random() * 100 + '%';
+      piece.style.background = colors[i % colors.length];
+      piece.style.animationDuration = (1 + Math.random() * 0.8) + 's';
+      piece.style.animationDelay = (Math.random() * 0.4) + 's';
+      modal.appendChild(piece);
+      piece.addEventListener('animationend', () => piece.remove());
+    }
+  }
+
+  /* ---------- input handling (drag + tap) ---------- */
+  function initGemInteractions(gem){
+    let startX = 0, startY = 0, moved = false, handled = false;
+
+    gem.el.addEventListener('pointerdown', (e) => {
+      if (busy) return;
+      e.preventDefault();
+      startX = e.clientX;
+      startY = e.clientY;
+      moved = false;
+      handled = false;
+      try { gem.el.setPointerCapture(e.pointerId); } catch (err) {}
+
+      function move(ev){
+        if (handled) return;
+        const dx = ev.clientX - startX, dy = ev.clientY - startY;
+        if (Math.hypot(dx, dy) > 16){
+          moved = true;
+          let tr = gem.row, tc = gem.col;
+          if (Math.abs(dx) > Math.abs(dy)){
+            tc += dx > 0 ? 1 : -1;
+          } else {
+            tr += dy > 0 ? 1 : -1;
+          }
+          if (tr >= 0 && tr < SIZE && tc >= 0 && tc < SIZE && board[tr][tc]){
+            handled = true;
+            attemptSwap(gem, board[tr][tc]);
+          }
+        }
+      }
+      function up(){
+        gem.el.removeEventListener('pointermove', move);
+        gem.el.removeEventListener('pointerup', up);
+        gem.el.removeEventListener('pointercancel', up);
+        try { gem.el.releasePointerCapture(e.pointerId); } catch (err) {}
+        if (!moved){
+          handleTap(gem);
+        }
+      }
+      gem.el.addEventListener('pointermove', move);
+      gem.el.addEventListener('pointerup', up);
+      gem.el.addEventListener('pointercancel', up);
+    });
+  }
+
+  function handleTap(gem){
+    if (busy) return;
+    if (selectedGem && selectedGem !== gem){
+      if (areAdjacent(selectedGem, gem)){
+        attemptSwap(selectedGem, gem);
+        return;
+      }
+      deselectAll();
+      selectedGem = gem;
+      gem.el.classList.add('selected');
+      return;
+    }
+    if (selectedGem === gem){
+      deselectAll();
+      return;
+    }
+    selectedGem = gem;
+    gem.el.classList.add('selected');
+  }
+
+  /* ---------- game start ---------- */
+  function startGame(){
+    modalOverlay.classList.remove('open');
+    document.querySelectorAll('.confetti').forEach(c => c.remove());
+    score = 0; movesLeft = START_MOVES; chainCombo = 0; bestCombo = 0; busy = false;
+    deselectAll();
+    gemsLayer.innerHTML = '';
+    computePitch();
+    layoutSockets();
+
+    board = [];
+    for (let r = 0; r < SIZE; r++){
+      board.push(new Array(SIZE).fill(null));
+    }
+    for (let r = 0; r < SIZE; r++){
+      for (let c = 0; c < SIZE; c++){
+        let type;
+        let guard = 0;
+        do {
+          type = randomType();
+          guard++;
+        } while (guard < 30 && (
+          (c >= 2 && board[r][c-1] && board[r][c-2] && board[r][c-1].type === type && board[r][c-2].type === type) ||
+          (r >= 2 && board[r-1][c] && board[r-2][c] && board[r-1][c].type === type && board[r-2][c].type === type)
+        ));
+        board[r][c] = createGemAt(r, c, type, (r * SIZE + c) * 6);
+      }
+    }
+    if (!hasAnyValidMove()){
+      startGame();
+      return;
+    }
+    updateHUD();
+  }
+
+  newGameBtn.addEventListener('click', startGame);
+  playAgainBtn.addEventListener('click', startGame);
+
+  startGame();
+})();
+</script>
+</body>
+</html>
