@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>门禁事件记录 - 外部 JSON 版</title>
+  <style>
+    :root {
+      --bg: #f4f6fa;
+      --card: #ffffff;
+      --primary: #2f5bea;
+      --primary-hover: #2449c7;
+      --primary-light: #eaf0ff;
+      --border: #e5e8f0;
+      --text: #1f2430;
+      --muted: #8892a4;
+      --success: #18a058;
+      --danger: #d03050;
+      --warning-bg: #fff8e6;
+      --warning-border: #f3d79b;
+      --warning-text: #8a5a00;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 32px;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 22px;
+    }
+
+    .sub {
+      margin-bottom: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .loader-panel {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--card);
+      box-shadow: 0 2px 10px rgba(20, 30, 60, 0.04);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 8px;
+      color: #fff;
+      background: var(--primary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: #fff;
+    }
+
+    .btn-secondary:hover {
+      background: #f7f8fb;
+    }
+
+    .file-name {
+      min-width: 160px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .drop-zone {
+      flex: 1;
+      min-width: 260px;
+      padding: 9px 14px;
+      border: 1px dashed #b7c3e8;
+      border-radius: 8px;
+      color: #68759b;
+      background: #f8faff;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .drop-zone.dragging {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .message {
+      display: none;
+      margin-bottom: 16px;
+      padding: 11px 14px;
+      border: 1px solid var(--warning-border);
+      border-radius: 8px;
+      color: var(--warning-text);
+      background: var(--warning-bg);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .card {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--card);
+      box-shadow: 0 2px 10px rgba(20, 30, 60, 0.04);
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: calc(100vh - 260px);
+    }
+
+    table {
+      width: 100%;
+      min-width: 1180px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--primary);
+      background: var(--primary-light);
+      font-weight: 600;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody tr:hover {
+      background: #fafbff;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .tag-in {
+      color: var(--success);
+      background: #e6f7ee;
+    }
+
+    .tag-out {
+      color: var(--danger);
+      background: #fdeeee;
+    }
+
+    .badge-verify {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      color: #556;
+      background: #f0f2f8;
+      font-size: 12px;
+    }
+
+    .empty {
+      display: none;
+      padding: 42px 20px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 16px;
+      }
+
+      .toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .drop-zone {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>门禁 / 考勤事件记录</h1>
+
+    <div class="sub">
+      页面会优先读取与 HTML 同目录的 <strong>testdata1.json</strong>。
+      直接双击 HTML 时，如果浏览器禁止读取本地 JSON，可点击“选择 JSON 文件”或将 JSON 拖入页面。
+      数据中的 Latin-1 / Windows-1252 误解码中文会在前端自动尝试还原。
+    </div>
+
+    <div class="loader-panel">
+      <label class="btn" for="jsonFile">选择 JSON 文件</label>
+      <input id="jsonFile" type="file" accept=".json,application/json" hidden>
+
+      <button id="reloadBtn" class="btn btn-secondary" type="button">
+        重新读取 testdata1.json
+      </button>
+
+      <span id="fileName" class="file-name">尚未载入数据</span>
+
+      <div id="dropZone" class="drop-zone">
+        可将 testdata1.json 拖放到这里
+      </div>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <div class="card">
+      <div class="toolbar">
+        <span id="countInfo">共 0 条记录</span>
+        <span id="pageInfo"></span>
+      </div>
+
+      <div class="table-wrap">
+        <table id="dataTable">
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>设备名称</th>
+              <th>事件点</th>
+              <th>事件描述</th>
+              <th>卡号</th>
+              <th>人员编号</th>
+              <th>姓名</th>
+              <th>部门</th>
+              <th>进/出</th>
+              <th>验证方式</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+
+        <div id="emptyTip" class="empty">暂无数据</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DATA_URL = './testdata1.json';
+
+    /*
+     * Windows-1252 特殊字符到原始字节的反向映射。
+     *
+     * UTF-8 字节 0x80～0x9F 如果被错误地按 Windows-1252 解码，
+     * 会变成 €、ƒ、—、› 等 Unicode 字符，不能仅用 charCodeAt() 还原。
+     */
+    const WINDOWS_1252_REVERSE_MAP = new Map([
+      ['€', 0x80],
+      ['‚', 0x82],
+      ['ƒ', 0x83],
+      ['„', 0x84],
+      ['…', 0x85],
+      ['†', 0x86],
+      ['‡', 0x87],
+      ['ˆ', 0x88],
+      ['‰', 0x89],
+      ['Š', 0x8A],
+      ['‹', 0x8B],
+      ['Œ', 0x8C],
+      ['Ž', 0x8E],
+      ['‘', 0x91],
+      ['’', 0x92],
+      ['“', 0x93],
+      ['”', 0x94],
+      ['•', 0x95],
+      ['–', 0x96],
+      ['—', 0x97],
+      ['˜', 0x98],
+      ['™', 0x99],
+      ['š', 0x9A],
+      ['›', 0x9B],
+      ['œ', 0x9C],
+      ['ž', 0x9E],
+      ['Ÿ', 0x9F]
+    ]);
+
+    const utf8Decoder = new TextDecoder('utf-8', {
+      fatal: true
+    });
+
+    function isByteLikeCharacter(character) {
+      const codePoint = character.codePointAt(0);
+
+      return (
+        codePoint <= 0xFF ||
+        WINDOWS_1252_REVERSE_MAP.has(character)
+      );
+    }
+
+    function decodeMojibakeSegment(segment) {
+      if (!segment) {
+        return '';
+      }
+
+      const bytes = [];
+
+      for (const character of segment) {
+        const codePoint = character.codePointAt(0);
+
+        if (codePoint <= 0xFF) {
+          bytes.push(codePoint);
+          continue;
+        }
+
+        const windows1252Byte =
+          WINDOWS_1252_REVERSE_MAP.get(character);
+
+        if (windows1252Byte === undefined) {
+          return segment;
+        }
+
+        bytes.push(windows1252Byte);
+      }
+
+      try {
+        return utf8Decoder.decode(Uint8Array.from(bytes));
+      } catch (error) {
+        return segment;
+      }
+    }
+
+    /*
+     * 一次修复：
+     * 将能够映射回字节的连续片段重新按 UTF-8 解码；
+     * 已经正常的中文字符会原样保留。
+     */
+    function decodeMojibakeOnce(value) {
+      let result = '';
+      let segment = '';
+
+      for (const character of value) {
+        if (isByteLikeCharacter(character)) {
+          segment += character;
+          continue;
+        }
+
+        result += decodeMojibakeSegment(segment);
+        segment = '';
+        result += character;
+      }
+
+      result += decodeMojibakeSegment(segment);
+
+      return result;
+    }
+
+    /*
+     * 最多处理三次，兼容少量被重复错误转码的数据。
+     */
+    function fixEncoding(value) {
+      if (typeof value !== 'string' || value === '') {
+        return value;
+      }
+
+      let result = value;
+
+      for (let index = 0; index < 3; index += 1) {
+        const decoded = decodeMojibakeOnce(result);
+
+        if (decoded === result) {
+          break;
+        }
+
+        result = decoded;
+      }
+
+      return result;
+    }
+
+    function fixValue(value) {
+      if (typeof value === 'string') {
+        return fixEncoding(value.trim());
+      }
+
+      if (Array.isArray(value)) {
+        return value.map(fixValue);
+      }
+
+      if (value && typeof value === 'object') {
+        return Object.fromEntries(
+          Object.entries(value).map(([key, nestedValue]) => [
+            key,
+            fixValue(nestedValue)
+          ])
+        );
+      }
+
+      return value;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function normalizeData(data) {
+      if (!data || typeof data !== 'object') {
+        throw new Error('JSON 顶层必须是一个对象');
+      }
+
+      if (!Array.isArray(data.rows)) {
+        throw new Error('JSON 中缺少 rows 数组');
+      }
+
+      return fixValue(data);
+    }
+
+    function render(data) {
+      const tbody = document.getElementById('tbody');
+      const emptyTip = document.getElementById('emptyTip');
+      const rows = Array.isArray(data.rows) ? data.rows : [];
+
+      document.getElementById('countInfo').textContent =
+        `共 ${rows.length} 条记录（当前页）`;
+
+      const pageText =
+        data.page !== undefined && data.page !== null
+          ? `第 ${data.page} 页`
+          : '';
+
+      const totalText =
+        data.records !== undefined && data.records !== null
+          ? `总记录数 ${data.records}`
+          : '';
+
+      document.getElementById('pageInfo').textContent =
+        [pageText, totalText].filter(Boolean).join(' · ');
+
+      if (rows.length === 0) {
+        tbody.innerHTML = '';
+        emptyTip.style.display = 'block';
+        return;
+      }
+
+      emptyTip.style.display = 'none';
+
+      tbody.innerHTML = rows.map((row) => {
+        const direction = row.inorout || '';
+        const isIn = direction === '进';
+
+        const directionTag = direction
+          ? `<span class="tag ${isIn ? 'tag-in' : 'tag-out'}">${escapeHtml(direction)}</span>`
+          : '';
+
+        const verifyTag = row.verify
+          ? `<span class="badge-verify">${escapeHtml(row.verify)}</span>`
+          : '';
+
+        return `
+          <tr>
+            <td>${escapeHtml(row.TTime)}</td>
+            <td>${escapeHtml(row.Device)}</td>
+            <td>${escapeHtml(row.event_point)}</td>
+            <td>${escapeHtml(row.event_no)}</td>
+            <td>${escapeHtml(row.card_no)}</td>
+            <td>${escapeHtml(row.pin)}</td>
+            <td>${escapeHtml(row.name)}</td>
+            <td>${escapeHtml(row.deptName)}</td>
+            <td>${directionTag}</td>
+            <td>${verifyTag}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function showMessage(text) {
+      const message = document.getElementById('message');
+
+      if (!text) {
+        message.textContent = '';
+        message.classList.remove('show');
+        return;
+      }
+
+      message.textContent = text;
+      message.classList.add('show');
+    }
+
+    function setLoadedFileName(name) {
+      document.getElementById('fileName').textContent =
+        name || '尚未载入数据';
+    }
+
+    function parseAndRenderJsonText(jsonText, sourceName) {
+      let rawData;
+
+      try {
+        rawData = JSON.parse(jsonText.replace(/^\uFEFF/, ''));
+      } catch (error) {
+        throw new Error(`JSON 格式错误：${error.message}`);
+      }
+
+      const normalizedData = normalizeData(rawData);
+
+      render(normalizedData);
+      setLoadedFileName(sourceName);
+      showMessage('');
+    }
+
+    async function loadFromLocalFile(file) {
+      if (!file) {
+        return;
+      }
+
+      try {
+        const jsonText = await file.text();
+        parseAndRenderJsonText(jsonText, file.name);
+      } catch (error) {
+        console.error('读取本地 JSON 失败：', error);
+        showMessage(error.message || '读取本地 JSON 失败');
+      }
+    }
+
+    async function loadDefaultJson() {
+      showMessage('');
+      setLoadedFileName('正在读取 testdata1.json…');
+
+      try {
+        const response = await fetch(DATA_URL, {
+          cache: 'no-store'
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const jsonText = await response.text();
+        parseAndRenderJsonText(jsonText, 'testdata1.json');
+      } catch (error) {
+        console.warn('自动读取 testdata1.json 失败：', error);
+
+        setLoadedFileName('未自动载入');
+
+        const isFileProtocol = location.protocol === 'file:';
+
+        showMessage(
+          isFileProtocol
+            ? '浏览器阻止了本地 HTML 通过 fetch 读取同目录 JSON。请点击“选择 JSON 文件”，或把 testdata1.json 拖入上方区域。'
+            : `无法读取 ${DATA_URL}：${error.message}`
+        );
+      }
+    }
+
+    const jsonFileInput = document.getElementById('jsonFile');
+    const reloadButton = document.getElementById('reloadBtn');
+    const dropZone = document.getElementById('dropZone');
+
+    jsonFileInput.addEventListener('change', (event) => {
+      const [file] = event.target.files || [];
+      loadFromLocalFile(file);
+
+      // 允许连续选择同一个文件。
+      event.target.value = '';
+    });
+
+    reloadButton.addEventListener('click', loadDefaultJson);
+
+    ['dragenter', 'dragover'].forEach((eventName) => {
+      dropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropZone.classList.add('dragging');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach((eventName) => {
+      dropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropZone.classList.remove('dragging');
+      });
+    });
+
+    dropZone.addEventListener('drop', (event) => {
+      const [file] = event.dataTransfer.files || [];
+
+      if (!file) {
+        return;
+      }
+
+      if (
+        file.type !== 'application/json' &&
+        !file.name.toLowerCase().endsWith('.json')
+      ) {
+        showMessage('请选择或拖入 JSON 文件');
+        return;
+      }
+
+      loadFromLocalFile(file);
+    });
+
+    loadDefaultJson();
+  </script>
+</body>
+</html>
